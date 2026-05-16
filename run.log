@@ -1,0 +1,139 @@
+=== Python version === 
+Python 3.14.5
+ 
+=== pip install yfinance pandas requests === 
+Collecting yfinance
+  Downloading yfinance-1.3.0-py2.py3-none-any.whl.metadata (6.1 kB)
+Collecting pandas
+  Downloading pandas-3.0.3-cp314-cp314-win_amd64.whl.metadata (19 kB)
+Collecting requests
+  Downloading requests-2.34.2-py3-none-any.whl.metadata (4.8 kB)
+Collecting numpy>=1.16.5 (from yfinance)
+  Downloading numpy-2.4.5-cp314-cp314-win_amd64.whl.metadata (6.6 kB)
+Collecting multitasking>=0.0.7 (from yfinance)
+  Downloading multitasking-0.0.13-py3-none-any.whl.metadata (16 kB)
+Collecting platformdirs>=2.0.0 (from yfinance)
+  Downloading platformdirs-4.9.6-py3-none-any.whl.metadata (4.7 kB)
+Collecting pytz>=2022.5 (from yfinance)
+  Downloading pytz-2026.2-py2.py3-none-any.whl.metadata (22 kB)
+Collecting frozendict>=2.3.4 (from yfinance)
+  Downloading frozendict-2.4.7-py3-none-any.whl.metadata (23 kB)
+Collecting peewee>=3.16.2 (from yfinance)
+  Downloading peewee-4.0.5-py3-none-any.whl.metadata (8.6 kB)
+Collecting beautifulsoup4>=4.11.1 (from yfinance)
+  Downloading beautifulsoup4-4.14.3-py3-none-any.whl.metadata (3.8 kB)
+Collecting curl_cffi>=0.15 (from yfinance)
+  Downloading curl_cffi-0.15.0-cp310-abi3-win_amd64.whl.metadata (18 kB)
+Collecting protobuf>=3.19.0 (from yfinance)
+  Downloading protobuf-7.34.1-cp310-abi3-win_amd64.whl.metadata (595 bytes)
+Collecting websockets>=13.0 (from yfinance)
+  Downloading websockets-16.0-cp314-cp314-win_amd64.whl.metadata (7.0 kB)
+Collecting python-dateutil>=2.8.2 (from pandas)
+  Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl.metadata (8.4 kB)
+Collecting tzdata (from pandas)
+  Downloading tzdata-2026.2-py2.py3-none-any.whl.metadata (1.4 kB)
+Collecting charset_normalizer<4,>=2 (from requests)
+  Downloading charset_normalizer-3.4.7-cp314-cp314-win_amd64.whl.metadata (41 kB)
+Collecting idna<4,>=2.5 (from requests)
+  Downloading idna-3.15-py3-none-any.whl.metadata (7.7 kB)
+Collecting urllib3<3,>=1.26 (from requests)
+  Downloading urllib3-2.7.0-py3-none-any.whl.metadata (6.9 kB)
+Collecting certifi>=2023.5.7 (from requests)
+  Downloading certifi-2026.4.22-py3-none-any.whl.metadata (2.5 kB)
+Collecting soupsieve>=1.6.1 (from beautifulsoup4>=4.11.1->yfinance)
+  Downloading soupsieve-2.8.3-py3-none-any.whl.metadata (4.6 kB)
+Collecting typing-extensions>=4.0.0 (from beautifulsoup4>=4.11.1->yfinance)
+  Downloading typing_extensions-4.15.0-py3-none-any.whl.metadata (3.3 kB)
+Collecting cffi>=2.0.0 (from curl_cffi>=0.15->yfinance)
+  Downloading cffi-2.0.0-cp314-cp314-win_amd64.whl.metadata (2.6 kB)
+Collecting rich (from curl_cffi>=0.15->yfinance)
+  Downloading rich-15.0.0-py3-none-any.whl.metadata (18 kB)
+Collecting pycparser (from cffi>=2.0.0->curl_cffi>=0.15->yfinance)
+  Downloading pycparser-3.0-py3-none-any.whl.metadata (8.2 kB)
+Collecting six>=1.5 (from python-dateutil>=2.8.2->pandas)
+  Downloading six-1.17.0-py2.py3-none-any.whl.metadata (1.7 kB)
+Collecting markdown-it-py>=2.2.0 (from rich->curl_cffi>=0.15->yfinance)
+  Downloading markdown_it_py-4.2.0-py3-none-any.whl.metadata (7.4 kB)
+Collecting pygments<3.0.0,>=2.13.0 (from rich->curl_cffi>=0.15->yfinance)
+  Downloading pygments-2.20.0-py3-none-any.whl.metadata (2.5 kB)
+Collecting mdurl~=0.1 (from markdown-it-py>=2.2.0->rich->curl_cffi>=0.15->yfinance)
+  Downloading mdurl-0.1.2-py3-none-any.whl.metadata (1.6 kB)
+Downloading yfinance-1.3.0-py2.py3-none-any.whl (133 kB)
+Downloading pandas-3.0.3-cp314-cp314-win_amd64.whl (9.9 MB)
+   ---------------------------------------- 9.9/9.9 MB 32.9 MB/s  0:00:00
+Downloading requests-2.34.2-py3-none-any.whl (73 kB)
+Downloading charset_normalizer-3.4.7-cp314-cp314-win_amd64.whl (159 kB)
+Downloading idna-3.15-py3-none-any.whl (72 kB)
+Downloading urllib3-2.7.0-py3-none-any.whl (131 kB)
+Downloading beautifulsoup4-4.14.3-py3-none-any.whl (107 kB)
+Downloading certifi-2026.4.22-py3-none-any.whl (135 kB)
+Downloading curl_cffi-0.15.0-cp310-abi3-win_amd64.whl (1.7 MB)
+   ---------------------------------------- 1.7/1.7 MB 31.2 MB/s  0:00:00
+Downloading cffi-2.0.0-cp314-cp314-win_amd64.whl (185 kB)
+Downloading frozendict-2.4.7-py3-none-any.whl (16 kB)
+Downloading multitasking-0.0.13-py3-none-any.whl (16 kB)
+Downloading numpy-2.4.5-cp314-cp314-win_amd64.whl (12.5 MB)
+   ---------------------------------------- 12.5/12.5 MB 44.0 MB/s  0:00:00
+Downloading peewee-4.0.5-py3-none-any.whl (144 kB)
+Downloading platformdirs-4.9.6-py3-none-any.whl (21 kB)
+Downloading protobuf-7.34.1-cp310-abi3-win_amd64.whl (437 kB)
+Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl (229 kB)
+Downloading pytz-2026.2-py2.py3-none-any.whl (510 kB)
+Downloading six-1.17.0-py2.py3-none-any.whl (11 kB)
+Downloading soupsieve-2.8.3-py3-none-any.whl (37 kB)
+Downloading typing_extensions-4.15.0-py3-none-any.whl (44 kB)
+Downloading websockets-16.0-cp314-cp314-win_amd64.whl (178 kB)
+Downloading pycparser-3.0-py3-none-any.whl (48 kB)
+Downloading rich-15.0.0-py3-none-any.whl (310 kB)
+Downloading pygments-2.20.0-py3-none-any.whl (1.2 MB)
+   ---------------------------------------- 1.2/1.2 MB 30.2 MB/s  0:00:00
+Downloading markdown_it_py-4.2.0-py3-none-any.whl (91 kB)
+Downloading mdurl-0.1.2-py3-none-any.whl (10.0 kB)
+Downloading tzdata-2026.2-py2.py3-none-any.whl (349 kB)
+Installing collected packages: pytz, peewee, multitasking, websockets, urllib3, tzdata, typing-extensions, soupsieve, six, pygments, pycparser, protobuf, platformdirs, numpy, mdurl, idna, frozendict, charset_normalizer, certifi, requests, python-dateutil, markdown-it-py, cffi, beautifulsoup4, rich, pandas, curl_cffi, yfinance
+
+Successfully installed beautifulsoup4-4.14.3 certifi-2026.4.22 cffi-2.0.0 charset_normalizer-3.4.7 curl_cffi-0.15.0 frozendict-2.4.7 idna-3.15 markdown-it-py-4.2.0 mdurl-0.1.2 multitasking-0.0.13 numpy-2.4.5 pandas-3.0.3 peewee-4.0.5 platformdirs-4.9.6 protobuf-7.34.1 pycparser-3.0 pygments-2.20.0 python-dateutil-2.9.0.post0 pytz-2026.2 requests-2.34.2 rich-15.0.0 six-1.17.0 soupsieve-2.8.3 typing-extensions-4.15.0 tzdata-2026.2 urllib3-2.7.0 websockets-16.0 yfinance-1.3.0
+ 
+=== Running screener (this may take ~1 minute) === 
+$DUMMYVEDL3.NS: possibly delisted; no price data found  (period=1y) (Yahoo error = "No data found, symbol may be delisted")
+$DUMMYVEDL4.NS: possibly delisted; no price data found  (period=1y) (Yahoo error = "No data found, symbol may be delisted")
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: DUMMYVEDL1.NS"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: DUMMYVEDL2.NS"}}}
+$DUMMYVEDL1.NS: possibly delisted; no price data found  (period=1y) (Yahoo error = "No data found, symbol may be delisted")
+$DUMMYVEDL2.NS: possibly delisted; no price data found  (period=1y) (Yahoo error = "No data found, symbol may be delisted")
+Fetching Nifty 500 list...
+Loaded 504 symbols. Starting screen...
+
+  processed 50/504  (17s elapsed, 2 hits so far)
+  processed 100/504  (22s elapsed, 5 hits so far)
+  processed 150/504  (26s elapsed, 5 hits so far)
+  processed 200/504  (29s elapsed, 5 hits so far)
+  processed 250/504  (34s elapsed, 7 hits so far)
+  processed 300/504  (37s elapsed, 7 hits so far)
+  processed 350/504  (42s elapsed, 10 hits so far)
+  processed 400/504  (45s elapsed, 11 hits so far)
+  processed 450/504  (49s elapsed, 11 hits so far)
+  processed 500/504  (53s elapsed, 11 hits so far)
+
+==============================================================================
+12 stocks match the screener
+==============================================================================
+        Symbol       LTP  % from 52W High  ...  Market Cap (Cr)  PE TTM    PB
+1   LAURUSLABS  1,323.60             0.32  ...        71,472.60   84.74 14.88
+2          MCX  3,391.00             0.93  ...        86,305.70   64.94 20.51
+3    KIRLOSENG  1,740.20             1.96  ...        25,299.00   44.64  7.50
+4         IDEA     12.95             2.85  ...       140,304.20     NaN -1.70
+5   ANANDRATHI  3,583.10             4.07  ...        29,747.10   75.75 29.80
+6      ACUTAAS  2,731.00             4.17  ...        22,359.00   78.12 13.52
+7         HFCL    147.89             4.77  ...        22,631.10  422.54  4.56
+8   ATHERENERG    937.40             5.26  ...        35,900.80     NaN 13.94
+9   ADANIPOWER    221.33             5.58  ...       426,828.20   33.43  6.58
+10  POWERINDIA 32,535.00             7.29  ...       145,016.20  169.49 31.64
+11     BELRISE    209.46             8.45  ...        18,639.40   39.08  3.44
+12  NATIONALUM    403.60             9.33  ...        74,126.50   12.06  3.43
+
+[12 rows x 8 columns]
+
+Saved -> screener_results.csv
+ 
+=== DONE === 

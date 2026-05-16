@@ -1,0 +1,27 @@
+=== Checking python install === 
+ 
+--- python on PATH? --- 
+C:\Users\dhruv\AppData\Local\Programs\Python\Python314\python.exe
+C:\Users\dhruv\AppData\Local\Microsoft\WindowsApps\python.exe
+ 
+--- py launcher? --- 
+C:\Users\dhruv\AppData\Local\Programs\Python\Launcher\py.exe
+ 
+--- LocalAppData Python install? --- 
+ Volume in drive C is OS
+ Volume Serial Number is 4EFD-FC22
+
+ Directory of C:\Users\dhruv\AppData\Local\Programs\Python
+
+16-05-2026  17:48    <DIR>          .
+16-05-2026  17:46    <DIR>          ..
+16-05-2026  17:48    <DIR>          Launcher
+16-05-2026  17:48    <DIR>          Python314
+               0 File(s)              0 bytes
+               4 Dir(s)  216,669,958,144 bytes free
+ 
+--- Is installer still running? --- 
+INFO: No tasks are running which match the specified criteria.
+INFO: No tasks are running which match the specified criteria.
+ 
+=== DONE === 
