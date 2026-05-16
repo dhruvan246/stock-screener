@@ -5,8 +5,8 @@ Pulls fundamentals for the Nifty 500 directly from screener.in, which mirrors
 BSE/NSE filings. Replaces yfinance as the data source so quarterly figures
 match the latest filings.
 
-Setup:  pip install requests beautifulsoup4 pandas
-Run:    python build_dataset_screenerin.py
+Setup: pip install requests beautifulsoup4 pandas
+Run: python build_dataset_screenerin.py
 Output: dataset.json
 """
 
@@ -15,6 +15,7 @@ import json
 import math
 import re
 import sys
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
@@ -23,14 +24,70 @@ import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 
-UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) personal-screener/1.0"}
+# Look like a normal browser. The earlier "personal-screener/1.0" UA was
+# fingerprinted by Cloudflare on screener.in after ~50 requests, after which
+# every subsequent request returned an interstitial page that didn't contain
+# "Quarterly Results" — so every fetch fell through both paths and ate the
+# full 20s × 2 timeout. Burned through the 15-min Actions budget at ~175/504.
+HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept": (
+        "text/html,application/xhtml+xml,application/xml;q=0.9,"
+        "image/avif,image/webp,*/*;q=0.8"
+    ),
+    "Accept-Language": "en-US,en;q=0.9",
+    "Referer": "https://www.screener.in/",
+    "Connection": "keep-alive",
+}
 NIFTY500_URL = "https://archives.nseindia.com/content/indices/ind_nifty500list.csv"
 BASE = "https://www.screener.in"
 NUM_RE = re.compile(r"-?[\d,]+(?:\.\d+)?")
 
+REQUEST_TIMEOUT = 12       # seconds per HTTP request
+RATE_LIMIT_BACKOFF = 8     # seconds to wait after a 429/403
+RATE_LIMIT_GIVEUP = 50     # bail out if this many *consecutive* rate-limited responses
+
+
+# Per-thread session so each worker keeps its own connection alive.
+_thread_local = threading.local()
+def _session() -> requests.Session:
+    s = getattr(_thread_local, "session", None)
+    if s is None:
+        s = requests.Session()
+        s.headers.update(HEADERS)
+        _thread_local.session = s
+    return s
+
+
+# Shared counter so workers can bail collectively if screener.in starts
+# rejecting us in a burst.
+class RateLimitTracker:
+    def __init__(self):
+        self.consecutive = 0
+        self.total = 0
+        self.aborted = False
+        self.lock = threading.Lock()
+
+    def hit(self):
+        with self.lock:
+            self.consecutive += 1
+            self.total += 1
+            if self.consecutive >= RATE_LIMIT_GIVEUP:
+                self.aborted = True
+
+    def reset(self):
+        with self.lock:
+            self.consecutive = 0
+
+    def should_skip(self) -> bool:
+        return self.aborted
+
 
 def get_nifty500():
-    r = requests.get(NIFTY500_URL, headers=UA, timeout=30)
+    r = requests.get(NIFTY500_URL, headers=HEADERS, timeout=30)
     r.raise_for_status()
     return [s.strip() for s in pd.read_csv(io.StringIO(r.text))["Symbol"]]
 
@@ -107,18 +164,33 @@ def _r(v, dp=2):
     return None if v is None else round(v, dp)
 
 
-def fetch_one(symbol, delay=0.4):
-    if delay:
-        time.sleep(delay)
+def fetch_one(symbol, tracker: RateLimitTracker):
+    if tracker.should_skip():
+        return None
+
+    sess = _session()
     r = None
-    for path in ("/company/" + symbol + "/consolidated/", "/company/" + symbol + "/"):
+    for path in (
+        "/company/" + symbol + "/consolidated/",
+        "/company/" + symbol + "/",
+    ):
         try:
-            resp = requests.get(BASE + path, headers=UA, timeout=20)
+            resp = sess.get(BASE + path, timeout=REQUEST_TIMEOUT)
         except requests.RequestException:
             continue
+
         if resp.status_code == 200 and "Quarterly Results" in resp.text:
+            tracker.reset()  # clear rate-limit streak on success
             r = resp
             break
+
+        if resp.status_code in (403, 429):
+            tracker.hit()
+            # Back off; don't try the second path immediately, it'll fail too.
+            time.sleep(RATE_LIMIT_BACKOFF)
+            return None
+
+        # 404 / 200-but-no-quarters: try the next path
     if r is None:
         return None
 
@@ -201,27 +273,27 @@ def fetch_one(symbol, delay=0.4):
 
 def _metrics_definition():
     return [
-        {"key": "ltp",                  "label": "Last Price",                "group": "Price",         "unit": ""},
-        {"key": "market_cap_cr",        "label": "Market Cap",                "group": "Size",          "unit": "Cr"},
-        {"key": "pe_ttm",               "label": "Stock P/E",                 "group": "Valuation",     "unit": "x"},
-        {"key": "pb",                   "label": "Price / Book",              "group": "Valuation",     "unit": "x"},
-        {"key": "peg",                  "label": "PEG Ratio",                 "group": "Valuation",     "unit": ""},
-        {"key": "roe_pct",              "label": "Return on Equity",          "group": "Profitability", "unit": "%"},
-        {"key": "roce_pct",             "label": "Return on Capital Employed","group": "Profitability", "unit": "%"},
-        {"key": "operating_margin_pct", "label": "Operating Margin (qtr)",    "group": "Profitability", "unit": "%"},
-        {"key": "debt_to_equity",       "label": "Borrowings / Reserves",     "group": "Solvency",      "unit": ""},
-        {"key": "np_yoy_pct",           "label": "Net Profit YoY (qtr)",      "group": "Growth",        "unit": "%"},
-        {"key": "np_qoq_pct",           "label": "Net Profit QoQ",            "group": "Growth",        "unit": "%"},
-        {"key": "rev_yoy_pct",          "label": "Sales YoY (qtr)",           "group": "Growth",        "unit": "%"},
-        {"key": "rev_qoq_pct",          "label": "Sales QoQ",                 "group": "Growth",        "unit": "%"},
-        {"key": "pct_from_high",        "label": "% from 52W High",           "group": "Technical",     "unit": "%"},
-        {"key": "pct_from_low",         "label": "% from 52W Low",            "group": "Technical",     "unit": "%"},
-        {"key": "dividend_yield_pct",   "label": "Dividend Yield",            "group": "Income",        "unit": "%"},
-        {"key": "payout_ratio_pct",     "label": "Dividend Payout",           "group": "Income",        "unit": "%"},
+        {"key": "ltp", "label": "Last Price", "group": "Price", "unit": ""},
+        {"key": "market_cap_cr", "label": "Market Cap", "group": "Size", "unit": "Cr"},
+        {"key": "pe_ttm", "label": "Stock P/E", "group": "Valuation", "unit": "x"},
+        {"key": "pb", "label": "Price / Book", "group": "Valuation", "unit": "x"},
+        {"key": "peg", "label": "PEG Ratio", "group": "Valuation", "unit": ""},
+        {"key": "roe_pct", "label": "Return on Equity", "group": "Profitability", "unit": "%"},
+        {"key": "roce_pct", "label": "Return on Capital Employed","group": "Profitability", "unit": "%"},
+        {"key": "operating_margin_pct", "label": "Operating Margin (qtr)", "group": "Profitability", "unit": "%"},
+        {"key": "debt_to_equity", "label": "Borrowings / Reserves", "group": "Solvency", "unit": ""},
+        {"key": "np_yoy_pct", "label": "Net Profit YoY (qtr)", "group": "Growth", "unit": "%"},
+        {"key": "np_qoq_pct", "label": "Net Profit QoQ", "group": "Growth", "unit": "%"},
+        {"key": "rev_yoy_pct", "label": "Sales YoY (qtr)", "group": "Growth", "unit": "%"},
+        {"key": "rev_qoq_pct", "label": "Sales QoQ", "group": "Growth", "unit": "%"},
+        {"key": "pct_from_high", "label": "% from 52W High", "group": "Technical", "unit": "%"},
+        {"key": "pct_from_low", "label": "% from 52W Low", "group": "Technical", "unit": "%"},
+        {"key": "dividend_yield_pct", "label": "Dividend Yield", "group": "Income", "unit": "%"},
+        {"key": "payout_ratio_pct", "label": "Dividend Payout", "group": "Income", "unit": "%"},
     ]
 
 
-def main(workers=6):
+def main(workers=3):
     prog = open("scrape_progress.txt", "w", buffering=1, encoding="utf-8")
 
     def log(msg):
@@ -231,23 +303,33 @@ def main(workers=6):
 
     log("Fetching Nifty 500 list...")
     symbols = get_nifty500()
-    log("  " + str(len(symbols)) + " symbols. Scraping screener.in...")
+    log(" " + str(len(symbols)) + " symbols. Scraping screener.in...")
 
+    tracker = RateLimitTracker()
     records = []
     t0 = time.time()
     with ThreadPoolExecutor(max_workers=workers) as ex:
-        futures = {ex.submit(fetch_one, s): s for s in symbols}
+        futures = {ex.submit(fetch_one, s, tracker): s for s in symbols}
         for i, fut in enumerate(as_completed(futures), 1):
             try:
                 rec = fut.result()
             except Exception as e:
-                log("  ! " + str(e)[:120])
+                log(" ! " + str(e)[:120])
                 rec = None
             if rec:
                 records.append(rec)
             if i % 25 == 0:
-                log("  " + str(i) + "/" + str(len(symbols))
-                    + "  (" + str(int(time.time() - t0)) + "s  kept=" + str(len(records)) + ")")
+                log(" " + str(i) + "/" + str(len(symbols))
+                    + " (" + str(int(time.time() - t0)) + "s kept=" + str(len(records))
+                    + " rate_limited=" + str(tracker.total) + ")")
+            if tracker.should_skip():
+                log("  ! rate-limit streak hit " + str(RATE_LIMIT_GIVEUP)
+                    + " — aborting remaining work")
+                # Let pending futures finish naturally; they'll see should_skip() and return None.
+                break
+
+    log(" done scraping in " + str(int(time.time() - t0)) + "s "
+        + "(kept=" + str(len(records)) + ", rate_limited=" + str(tracker.total) + ")")
 
     out = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -259,7 +341,14 @@ def main(workers=6):
     }
     with open("dataset.json", "w", encoding="utf-8") as f:
         json.dump(out, f, separators=(",", ":"), ensure_ascii=False)
-    log("Done. " + str(len(records)) + " stocks -> dataset.json  in " + str(int(time.time() - t0)) + "s")
+    log("Done. " + str(len(records)) + " stocks -> dataset.json in "
+        + str(int(time.time() - t0)) + "s")
+
+    # Fail the job loudly if we got almost nothing back, so the workflow
+    # doesn't silently commit a near-empty dataset.json over a good one.
+    if len(records) < 100:
+        log("FATAL: only " + str(len(records)) + " stocks scraped — not overwriting.")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
