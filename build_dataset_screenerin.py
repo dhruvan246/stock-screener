@@ -167,6 +167,27 @@ def _r(v, dp=2):
     return None if v is None else round(v, dp)
 
 
+def _has_real_data(html: str) -> bool:
+    """Quick check: does this page actually have a populated Current Price chip?
+
+    screener.in returns 200 + the "Quarterly Results" string for some stocks
+    even when the chip values are blank (e.g. consolidated page for stocks
+    that only report standalone). Such a response is structurally a valid
+    page but useless for us. We sniff the Current Price chip and look for
+    at least one digit. We deliberately use a substring/regex check instead
+    of a full BeautifulSoup parse — this runs for every fetch and the parse
+    happens later anyway."""
+    # Locate the Current Price chip and check whether the .number span has
+    # any digit in it. Be lenient about whitespace and minor markup variance.
+    m = re.search(
+        r'<span class="name">\s*Current Price\s*</span>.*?'
+        r'<span class="(?:nowrap )?number">\s*([0-9])',
+        html,
+        flags=re.DOTALL,
+    )
+    return bool(m)
+
+
 def fetch_one(symbol, tracker: RateLimitTracker, polite_sleep: float = 0.0):
     """Return parsed record dict on success, or a sentinel tuple on failure:
        ("rate_limit", symbol)  — got 403/429; should retry later
@@ -192,9 +213,20 @@ def fetch_one(symbol, tracker: RateLimitTracker, polite_sleep: float = 0.0):
             continue
 
         if resp.status_code == 200 and "Quarterly Results" in resp.text:
-            tracker.reset()
-            r = resp
-            break
+            # For a handful of stocks (e.g. ATHERENERG, POWERINDIA, IRFC, ICICIGI,
+            # ~30 in total) screener.in serves a /consolidated/ page that has the
+            # chip layout but every value is blank — "Current Price: ₹" with no
+            # number. The /company/SYMBOL/ (standalone) path has the real data
+            # for those. So before accepting a page, verify Current Price actually
+            # parses to a number; otherwise fall through to the next path.
+            if _has_real_data(resp.text):
+                tracker.reset()
+                r = resp
+                break
+            # else: 200 + has "Quarterly Results" text but values are empty.
+            # Don't reset the tracker — this isn't a rate-limit either. Just
+            # try the next path.
+            continue
 
         if resp.status_code in (403, 429):
             tracker.hit()
