@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stock Screener Builder</title>
+<style>
+  :root{
+    --bg:#0f1419; --card:#1a212b; --card-2:#161c25; --text:#e6edf3; --muted:#8b949e;
+    --accent:#3fb950; --accent-2:#2ea043; --warn:#d29922; --danger:#f85149;
+    --row-hover:#222b36; --border:#30363d; --link:#58a6ff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+       background:var(--bg);color:var(--text);line-height:1.5}
+  .wrap{max-width:1200px;margin:0 auto;padding:24px 18px 80px}
+  a{color:var(--link);text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  header{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px}
+  h1{margin:0;font-size:24px;letter-spacing:-.01em}
+  .sub{color:var(--muted);font-size:13px}
+
+  /* Builder card */
+  .builder{background:var(--card);border:1px solid var(--border);border-radius:12px;
+           padding:18px;margin:18px 0}
+  .builder-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .builder-head .lbl{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+  .criteria{display:flex;flex-direction:column;gap:8px}
+  .crit-row{display:grid;grid-template-columns:64px 1.8fr 0.8fr 1fr auto;
+            gap:8px;align-items:center}
+  .crit-row .join{font-size:12px;font-weight:600;color:var(--muted);text-align:center}
+  .crit-row .join select{width:100%}
+  .crit-row.first .join{visibility:hidden}
+
+  select,input,button{font:inherit;color:var(--text);background:var(--card-2);
+                     border:1px solid var(--border);border-radius:6px;padding:7px 10px}
+  select:focus,input:focus{outline:0;border-color:var(--link)}
+  input[type=number]{width:100%}
+  .btn{cursor:pointer;background:var(--card-2);transition:.1s}
+  .btn:hover{background:#1f2630}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#0a0d10;font-weight:600}
+  .btn.primary:hover{background:var(--accent-2)}
+  .btn.ghost{background:transparent}
+  .btn.icon{padding:7px 10px;color:var(--muted)}
+  .btn.icon:hover{color:var(--danger)}
+  .actions{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:14px}
+  .actions .left{display:flex;gap:8px;flex-wrap:wrap}
+
+  /* Meta strip */
+  .meta{margin:14px 0 8px;color:var(--muted);font-size:13px;display:flex;flex-wrap:wrap;
+        gap:10px;align-items:center}
+  .badge{display:inline-block;background:var(--card);border:1px solid var(--border);
+         border-radius:6px;padding:2px 8px;font-size:12px;color:var(--muted)}
+
+  /* Results table */
+  .results{background:var(--card);border:1px solid var(--border);border-radius:12px;
+           overflow:auto;max-height:70vh}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
+  th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}
+  thead th{background:var(--card-2);position:sticky;top:0;font-weight:600;font-size:11px;
+           text-transform:uppercase;letter-spacing:.05em;color:var(--muted);cursor:pointer;user-select:none}
+  thead th:hover{color:var(--text)}
+  thead th .arrow{display:inline-block;width:10px;color:var(--accent);margin-left:4px}
+  tbody tr:hover{background:var(--row-hover)}
+  tbody tr:last-child td{border-bottom:0}
+  td.sym{font-weight:600;color:var(--text)}
+  .empty{padding:32px;text-align:center;color:var(--muted)}
+
+  .footer{margin-top:16px;font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1>Stock Screener Builder</h1>
+      <p class="sub">Nifty 500 · ~30 metrics · Data: Yahoo Finance</p>
+    </div>
+    <div class="sub">
+      <a href="index.html">← snapshot view</a> ·
+      <a href="https://github.com/dhruvan246/stock-screener" target="_blank">code</a>
+    </div>
+  </header>
+
+  <!-- ===== BUILDER ===== -->
+  <div class="builder">
+    <div class="builder-head">
+      <span class="lbl">Criteria</span>
+      <span class="sub" id="dataset-info">Loading dataset…</span>
+    </div>
+
+    <div class="criteria" id="criteria"></div>
+
+    <div class="actions">
+      <div class="left">
+        <button class="btn" id="add-row">+ Add criterion</button>
+        <button class="btn ghost" id="reset">Reset</button>
+        <button class="btn ghost" id="share">Copy share link</button>
+      </div>
+      <button class="btn primary" id="run">Run screen</button>
+    </div>
+  </div>
+
+  <div class="meta">
+    <span class="badge" id="count">0 results</span>
+    <span class="badge" id="run-time">—</span>
+  </div>
+
+  <!-- ===== RESULTS ===== -->
+  <div class="results" id="results">
+    <div class="empty">Add at least one criterion and click <b>Run screen</b>.</div>
+  </div>
+
+  <p class="footer">
+    Free Yahoo data; some values may be null where Yahoo doesn't report them.
+    Re-run <code>build_dataset.py</code> to refresh.
+  </p>
+
+</div>
+
+<script>
+const OPS = [
+  {op:">",  label:"greater than"},
+  {op:">=", label:"≥"},
+  {op:"<",  label:"less than"},
+  {op:"<=", label:"≤"},
+  {op:"=",  label:"equal to"},
+  {op:"!=", label:"not equal"},
+];
+
+let DATA = null;
+let METRICS = [];
+let rows = [];   // [{metric, op, value, join}]
+
+// --- Load dataset ---
+async function load(){
+  try {
+    const r = await fetch("dataset.json", {cache:"no-store"});
+    if (!r.ok) throw new Error("HTTP "+r.status);
+    DATA = await r.json();
+    METRICS = DATA.metrics || [];
+    document.getElementById("dataset-info").innerHTML =
+      `${DATA.count} stocks · generated ${new Date(DATA.generated_at).toLocaleDateString()}`;
+    seedFromHash() || addRow();
+  } catch(e){
+    document.getElementById("dataset-info").innerHTML =
+      `<span style="color:var(--danger)">Could not load dataset.json (${e.message}). ` +
+      `Run <code>build_dataset.py</code> and commit dataset.json.</span>`;
+  }
+}
+
+// --- Render criteria ---
+function metricOptions(){
+  const groups = {};
+  METRICS.forEach(m => (groups[m.group] = groups[m.group] || []).push(m));
+  return Object.entries(groups).map(([g, list]) =>
+    `<optgroup label="${g}">` +
+    list.map(m => `<option value="${m.key}">${m.label}${m.unit ? " ("+m.unit+")" : ""}</option>`).join("") +
+    `</optgroup>`
+  ).join("");
+}
+function opOptions(){
+  return OPS.map(o => `<option value="${o.op}">${o.op} (${o.label})</option>`).join("");
+}
+function renderRows(){
+  const host = document.getElementById("criteria");
+  host.innerHTML = rows.map((r, i) => `
+    <div class="crit-row${i===0?" first":""}" data-i="${i}">
+      <div class="join">
+        <select data-f="join" ${i===0?"disabled":""}>
+          <option value="AND" ${r.join==="AND"?"selected":""}>AND</option>
+          <option value="OR"  ${r.join==="OR" ?"selected":""}>OR</option>
+        </select>
+      </div>
+      <select data-f="metric">${metricOptions()}</select>
+      <select data-f="op">${opOptions()}</select>
+      <input data-f="value" type="number" step="any" placeholder="value" value="${r.value ?? ""}">
+      <button class="btn icon" data-f="del" title="Remove">✕</button>
+    </div>
+  `).join("");
+  host.querySelectorAll(".crit-row").forEach(div=>{
+    const i = +div.dataset.i;
+    div.querySelector('[data-f="metric"]').value = rows[i].metric || METRICS[0]?.key;
+    div.querySelector('[data-f="op"]').value     = rows[i].op || ">";
+    div.querySelectorAll("select,input").forEach(el=>{
+      el.addEventListener("change", ev => {
+        const f = ev.target.dataset.f;
+        rows[i][f] = ev.target.value;
+      });
+      el.addEventListener("input", ev => {
+        const f = ev.target.dataset.f;
+        rows[i][f] = ev.target.value;
+      });
+    });
+    div.querySelector('[data-f="del"]').addEventListener("click", ()=>{
+      rows.splice(i,1);
+      if (rows.length === 0) addRow(); else renderRows();
+    });
+  });
+}
+function addRow(){
+  rows.push({metric: METRICS[0]?.key, op:">", value:"", join:"AND"});
+  renderRows();
+}
+
+// --- Apply filter ---
+function applyFilter(){
+  const t0 = performance.now();
+  const valid = rows.filter(r => r.value !== "" && r.value !== null && !isNaN(parseFloat(r.value)));
+  if (valid.length === 0){
+    document.getElementById("results").innerHTML =
+      `<div class="empty">Enter a number in at least one criterion, then click Run screen.</div>`;
+    document.getElementById("count").textContent = "0 results";
+    return;
+  }
+
+  // Evaluate left-to-right with simple AND/OR (AND binds tighter than OR is NOT respected here -
+  // we keep it simple/sequential which is intuitive for casual screens).
+  const match = (s) => {
+    let result = true;
+    for (let i = 0; i < valid.length; i++){
+      const r = valid[i];
+      const v = s[r.metric];
+      let pass;
+      if (v == null) { pass = false; }
+      else {
+        const x = parseFloat(r.value);
+        switch(r.op){
+          case ">":  pass = v >  x; break;
+          case ">=": pass = v >= x; break;
+          case "<":  pass = v <  x; break;
+          case "<=": pass = v <= x; break;
+          case "=":  pass = Math.abs(v - x) < 1e-9; break;
+          case "!=": pass = Math.abs(v - x) >= 1e-9; break;
+          default:   pass = false;
+        }
+      }
+      if (i === 0) result = pass;
+      else if (r.join === "OR") result = result || pass;
+      else                       result = result && pass;
+    }
+    return result;
+  };
+
+  const hits = DATA.stocks.filter(match);
+  renderResults(hits);
+  const dt = (performance.now() - t0).toFixed(0);
+  document.getElementById("count").textContent = `${hits.length} of ${DATA.count}`;
+  document.getElementById("run-time").textContent = `${dt} ms`;
+  // Save filter to URL hash for sharing
+  history.replaceState(null, "", "#" + encodeURIComponent(JSON.stringify(rows)));
+}
+
+// --- Render results ---
+let sortKey = "market_cap_cr", sortDir = -1;
+
+function renderResults(hits){
+  if (hits.length === 0){
+    document.getElementById("results").innerHTML =
+      `<div class="empty">No stocks match all criteria.</div>`;
+    return;
+  }
+  // Choose columns: symbol, name, sector + the metrics used in criteria + market cap
+  const usedKeys = [...new Set(rows.map(r => r.metric))];
+  const baseKeys = ["symbol","name","sector","ltp","market_cap_cr"];
+  const cols = [...new Set([...baseKeys, ...usedKeys])];
+  const labelFor = (k) => {
+    if (k==="symbol") return "Symbol";
+    if (k==="name") return "Name";
+    if (k==="sector") return "Sector";
+    if (k==="ltp") return "LTP";
+    const m = METRICS.find(m=>m.key===k);
+    return m ? m.label + (m.unit?` (${m.unit})`:"") : k;
+  };
+
+  const sorted = [...hits].sort((a,b)=>{
+    const x = a[sortKey], y = b[sortKey];
+    if (x == null) return 1; if (y == null) return -1;
+    if (typeof x === "string") return x.localeCompare(y) * sortDir;
+    return (x > y ? 1 : x < y ? -1 : 0) * sortDir;
+  });
+
+  const fmt = (k, v) => {
+    if (v == null) return "—";
+    if (typeof v === "string") return v;
+    if (k === "market_cap_cr" || k === "enterprise_val_cr") return Number(v).toLocaleString("en-IN", {maximumFractionDigits:0});
+    return Number(v).toLocaleString("en-IN", {minimumFractionDigits:2, maximumFractionDigits:2});
+  };
+
+  const html = `
+    <table>
+      <thead><tr>
+        ${cols.map(k => `<th data-key="${k}">${labelFor(k)}${sortKey===k?`<span class="arrow">${sortDir===1?"▲":"▼"}</span>`:""}</th>`).join("")}
+      </tr></thead>
+      <tbody>
+        ${sorted.map(s => `<tr>${cols.map(k => {
+          const v = s[k];
+          const cls = k==="symbol" ? "sym" : (typeof v === "number" ? "num" : "");
+          return `<td class="${cls}">${fmt(k, v)}</td>`;
+        }).join("")}</tr>`).join("")}
+      </tbody>
+    </table>
+  `;
+  document.getElementById("results").innerHTML = html;
+  document.querySelectorAll("thead th").forEach(th => {
+    th.addEventListener("click", () => {
+      const k = th.dataset.key;
+      if (sortKey === k) sortDir = -sortDir; else { sortKey = k; sortDir = -1; }
+      renderResults(hits);
+    });
+  });
+}
+
+// --- Share via URL hash ---
+function seedFromHash(){
+  if (!location.hash) return false;
+  try {
+    rows = JSON.parse(decodeURIComponent(location.hash.slice(1)));
+    if (!Array.isArray(rows) || rows.length === 0) { rows = []; return false; }
+    renderRows();
+    setTimeout(applyFilter, 50);
+    return true;
+  } catch { rows = []; return false; }
+}
+
+document.getElementById("add-row").addEventListener("click", addRow);
+document.getElementById("reset").addEventListener("click", () => {
+  rows = []; history.replaceState(null, "", location.pathname); addRow();
+  document.getElementById("results").innerHTML = `<div class="empty">Add at least one criterion and click <b>Run screen</b>.</div>`;
+  document.getElementById("count").textContent = "0 results";
+  document.getElementById("run-time").textContent = "—";
+});
+document.getElementById("share").addEventListener("click", async () => {
+  try { await navigator.clipboard.writeText(location.href); }
+  catch { /* ignore */ }
+  document.getElementById("share").textContent = "Copied!";
+  setTimeout(() => document.getElementById("share").textContent = "Copy share link", 1500);
+});
+document.getElementById("run").addEventListener("click", applyFilter);
+
+load();
+</script>
+</body>
+</html>

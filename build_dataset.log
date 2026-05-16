@@ -1,0 +1,27 @@
+=== Running build_dataset.py === 
+This takes 3-5 minutes for full Nifty 500... 
+ 
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: DUMMYVEDL1.NS"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: DUMMYVEDL2.NS"}}}
+$DUMMYVEDL3.NS: possibly delisted; no price data found  (period=1y) (Yahoo error = "No data found, symbol may be delisted")
+$DUMMYVEDL4.NS: possibly delisted; no price data found  (period=1y) (Yahoo error = "No data found, symbol may be delisted")
+$DUMMYVEDL1.NS: possibly delisted; no price data found  (period=1y) (Yahoo error = "No data found, symbol may be delisted")
+$DUMMYVEDL2.NS: possibly delisted; no price data found  (period=1y) (Yahoo error = "No data found, symbol may be delisted")
+Fetching Nifty 500 list...
+  504 symbols. Building dataset...
+
+  50/504  (11s  kept=50)
+  100/504  (19s  kept=100)
+  150/504  (29s  kept=149)
+  200/504  (38s  kept=196)
+  250/504  (46s  kept=246)
+  300/504  (53s  kept=295)
+  350/504  (62s  kept=345)
+  400/504  (70s  kept=395)
+  450/504  (78s  kept=445)
+  500/504  (86s  kept=495)
+
+Done. 499 stocks -> dataset.json
+Elapsed: 87s
+ 
+=== DONE === 
