@@ -44,14 +44,31 @@
   .btn.ghost{background:transparent}
   .btn.icon{padding:7px 10px;color:var(--muted)}
   .btn.icon:hover{color:var(--danger)}
+  .btn.danger{color:var(--danger);border-color:var(--danger)}
+  .btn.danger:hover{background:rgba(248,81,73,.08)}
   .actions{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:14px}
   .actions .left{display:flex;gap:8px;flex-wrap:wrap}
+
+  /* Saved screens bar */
+  .saved-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+             padding:10px 12px;margin-bottom:12px;
+             background:var(--card-2);border:1px dashed var(--border);border-radius:8px}
+  .saved-bar .label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-right:2px}
+  .saved-bar select{min-width:200px;max-width:320px}
+  .saved-bar .grow{flex:1}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+         background:var(--card);border:1px solid var(--border);color:var(--text);
+         padding:10px 16px;border-radius:8px;font-size:13px;
+         box-shadow:0 4px 16px rgba(0,0,0,.4);
+         opacity:0;pointer-events:none;transition:opacity .2s;z-index:99}
+  .toast.show{opacity:1}
 
   /* Meta strip */
   .meta{margin:14px 0 8px;color:var(--muted);font-size:13px;display:flex;flex-wrap:wrap;
         gap:10px;align-items:center}
   .badge{display:inline-block;background:var(--card);border:1px solid var(--border);
          border-radius:6px;padding:2px 8px;font-size:12px;color:var(--muted)}
+  .badge.active{color:var(--accent);border-color:var(--accent)}
 
   /* Results table */
   .results{background:var(--card);border:1px solid var(--border);border-radius:12px;
@@ -70,7 +87,7 @@
 
   .footer{margin-top:16px;font-size:13px;color:var(--muted)}
 </style>
-</head> 
+</head>
 <body>
 <div class="wrap">
 
@@ -92,6 +109,18 @@
       <span class="sub" id="dataset-info">Loading dataset…</span>
     </div>
 
+    <!-- Saved screens bar -->
+    <div class="saved-bar">
+      <span class="label">My screens</span>
+      <select id="preset-select" title="Saved screens">
+        <option value="">— select a saved screen —</option>
+      </select>
+      <button class="btn" id="preset-load" title="Load selected screen">Load</button>
+      <button class="btn danger" id="preset-delete" title="Delete selected screen">Delete</button>
+      <span class="grow"></span>
+      <button class="btn primary" id="preset-save" title="Save current criteria">＋ Save current</button>
+    </div>
+
     <div class="criteria" id="criteria"></div>
 
     <div class="actions">
@@ -107,6 +136,7 @@
   <div class="meta">
     <span class="badge" id="count">0 results</span>
     <span class="badge" id="run-time">—</span>
+    <span class="badge active" id="active-preset" style="display:none">—</span>
   </div>
 
   <!-- ===== RESULTS ===== -->
@@ -117,9 +147,12 @@
   <p class="footer">
     Free Yahoo data; some values may be null where Yahoo doesn't report them.
     Re-run <code>build_dataset.py</code> to refresh.
+    Saved screens live in this browser's localStorage.
   </p>
 
 </div>
+
+<div class="toast" id="toast"></div>
 
 <script>
 const OPS = [
@@ -131,9 +164,21 @@ const OPS = [
   {op:"!=", label:"not equal"},
 ];
 
+const PRESET_KEY = "screener_presets_v1";
+
 let DATA = null;
 let METRICS = [];
 let rows = [];   // [{metric, op, value, join}]
+let activePresetName = "";
+
+// --- Toast helper ---
+function toast(msg, ms=1600){
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(()=>el.classList.remove("show"), ms);
+}
 
 // --- Load dataset ---
 async function load(){
@@ -144,6 +189,7 @@ async function load(){
     METRICS = DATA.metrics || [];
     document.getElementById("dataset-info").innerHTML =
       `${DATA.count} stocks · generated ${new Date(DATA.generated_at).toLocaleDateString()}`;
+    refreshPresetDropdown();
     seedFromHash() || addRow();
   } catch(e){
     document.getElementById("dataset-info").innerHTML =
@@ -189,21 +235,25 @@ function renderRows(){
       el.addEventListener("change", ev => {
         const f = ev.target.dataset.f;
         rows[i][f] = ev.target.value;
+        markDirty();
       });
       el.addEventListener("input", ev => {
         const f = ev.target.dataset.f;
         rows[i][f] = ev.target.value;
+        markDirty();
       });
     });
     div.querySelector('[data-f="del"]').addEventListener("click", ()=>{
       rows.splice(i,1);
       if (rows.length === 0) addRow(); else renderRows();
+      markDirty();
     });
   });
 }
 function addRow(){
   rows.push({metric: METRICS[0]?.key, op:">", value:"", join:"AND"});
   renderRows();
+  markDirty();
 }
 
 // --- Apply filter ---
@@ -217,8 +267,6 @@ function applyFilter(){
     return;
   }
 
-  // Evaluate left-to-right with simple AND/OR (AND binds tighter than OR is NOT respected here -
-  // we keep it simple/sequential which is intuitive for casual screens).
   const match = (s) => {
     let result = true;
     for (let i = 0; i < valid.length; i++){
@@ -250,7 +298,6 @@ function applyFilter(){
   const dt = (performance.now() - t0).toFixed(0);
   document.getElementById("count").textContent = `${hits.length} of ${DATA.count}`;
   document.getElementById("run-time").textContent = `${dt} ms`;
-  // Save filter to URL hash for sharing
   history.replaceState(null, "", "#" + encodeURIComponent(JSON.stringify(rows)));
 }
 
@@ -263,7 +310,6 @@ function renderResults(hits){
       `<div class="empty">No stocks match all criteria.</div>`;
     return;
   }
-  // Choose columns: symbol, name, sector + the metrics used in criteria + market cap
   const usedKeys = [...new Set(rows.map(r => r.metric))];
   const baseKeys = ["symbol","name","sector","ltp","market_cap_cr"];
   const cols = [...new Set([...baseKeys, ...usedKeys])];
@@ -326,12 +372,94 @@ function seedFromHash(){
   } catch { rows = []; return false; }
 }
 
+// ===== Saved screens (localStorage) =====
+function readPresets(){
+  try { return JSON.parse(localStorage.getItem(PRESET_KEY) || "{}") || {}; }
+  catch { return {}; }
+}
+function writePresets(p){
+  localStorage.setItem(PRESET_KEY, JSON.stringify(p));
+}
+function refreshPresetDropdown(){
+  const sel = document.getElementById("preset-select");
+  const presets = readPresets();
+  const names = Object.keys(presets).sort((a,b)=>a.localeCompare(b));
+  sel.innerHTML = `<option value="">— select a saved screen —</option>` +
+    names.map(n => `<option value="${n.replace(/"/g,'&quot;')}"${n===activePresetName?" selected":""}>${n}</option>`).join("");
+  updateActiveBadge();
+}
+function updateActiveBadge(){
+  const b = document.getElementById("active-preset");
+  if (activePresetName){
+    b.textContent = "★ " + activePresetName;
+    b.style.display = "";
+  } else {
+    b.style.display = "none";
+  }
+}
+function markDirty(){
+  // when criteria change after loading a preset, drop the "active" indicator
+  if (activePresetName){
+    activePresetName = "";
+    document.getElementById("preset-select").value = "";
+    updateActiveBadge();
+  }
+}
+
+function savePreset(){
+  // Strip empty rows
+  const clean = rows.filter(r => r.metric);
+  if (clean.length === 0){ toast("Nothing to save — add a criterion first."); return; }
+  const presets = readPresets();
+  const suggested = activePresetName || "";
+  const name = (prompt("Name this screen:", suggested) || "").trim();
+  if (!name) return;
+  if (presets[name] && !confirm(`"${name}" already exists. Overwrite?`)) return;
+  presets[name] = { rows: clean, savedAt: Date.now() };
+  writePresets(presets);
+  activePresetName = name;
+  refreshPresetDropdown();
+  toast(`Saved "${name}"`);
+}
+
+function loadPreset(){
+  const sel = document.getElementById("preset-select");
+  const name = sel.value;
+  if (!name){ toast("Pick a saved screen first."); return; }
+  const presets = readPresets();
+  const p = presets[name];
+  if (!p){ toast("Preset not found."); refreshPresetDropdown(); return; }
+  rows = JSON.parse(JSON.stringify(p.rows));
+  renderRows();
+  activePresetName = name;
+  updateActiveBadge();
+  applyFilter();
+  toast(`Loaded "${name}"`);
+}
+
+function deletePreset(){
+  const sel = document.getElementById("preset-select");
+  const name = sel.value;
+  if (!name){ toast("Pick a saved screen first."); return; }
+  if (!confirm(`Delete saved screen "${name}"?`)) return;
+  const presets = readPresets();
+  delete presets[name];
+  writePresets(presets);
+  if (activePresetName === name) activePresetName = "";
+  refreshPresetDropdown();
+  toast(`Deleted "${name}"`);
+}
+
+// ===== Wire UI =====
 document.getElementById("add-row").addEventListener("click", addRow);
 document.getElementById("reset").addEventListener("click", () => {
   rows = []; history.replaceState(null, "", location.pathname); addRow();
   document.getElementById("results").innerHTML = `<div class="empty">Add at least one criterion and click <b>Run screen</b>.</div>`;
   document.getElementById("count").textContent = "0 results";
   document.getElementById("run-time").textContent = "—";
+  activePresetName = "";
+  document.getElementById("preset-select").value = "";
+  updateActiveBadge();
 });
 document.getElementById("share").addEventListener("click", async () => {
   try { await navigator.clipboard.writeText(location.href); }
@@ -340,6 +468,11 @@ document.getElementById("share").addEventListener("click", async () => {
   setTimeout(() => document.getElementById("share").textContent = "Copy share link", 1500);
 });
 document.getElementById("run").addEventListener("click", applyFilter);
+
+document.getElementById("preset-save").addEventListener("click", savePreset);
+document.getElementById("preset-load").addEventListener("click", loadPreset);
+document.getElementById("preset-delete").addEventListener("click", deletePreset);
+document.getElementById("preset-select").addEventListener("dblclick", loadPreset);
 
 load();
 </script>
