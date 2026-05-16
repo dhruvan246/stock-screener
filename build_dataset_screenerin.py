@@ -5,6 +5,13 @@ Pulls fundamentals for the Nifty 500 directly from screener.in, which mirrors
 BSE/NSE filings. Replaces yfinance as the data source so quarterly figures
 match the latest filings.
 
+Two-pass strategy:
+  Pass 1: 3 workers, 12s timeout, fast. Captures ~70-80% before screener.in
+          starts rate-limiting bursts of concurrent requests.
+  Pass 2: sequential (1 worker) with 1.5s polite pauses, retrying only the
+          symbols Pass 1 didn't get. Picks up most of the remaining stocks
+          since the slow drip-feed doesn't trigger the WAF.
+
 Setup: pip install requests beautifulsoup4 pandas
 Run: python build_dataset_screenerin.py
 Output: dataset.json
@@ -24,11 +31,6 @@ import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 
-# Look like a normal browser. The earlier "personal-screener/1.0" UA was
-# fingerprinted by Cloudflare on screener.in after ~50 requests, after which
-# every subsequent request returned an interstitial page that didn't contain
-# "Quarterly Results" — so every fetch fell through both paths and ate the
-# full 20s × 2 timeout. Burned through the 15-min Actions budget at ~175/504.
 HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -47,8 +49,8 @@ BASE = "https://www.screener.in"
 NUM_RE = re.compile(r"-?[\d,]+(?:\.\d+)?")
 
 REQUEST_TIMEOUT = 12       # seconds per HTTP request
-RATE_LIMIT_BACKOFF = 8     # seconds to wait after a 429/403
-RATE_LIMIT_GIVEUP = 50     # bail out if this many *consecutive* rate-limited responses
+RATE_LIMIT_BACKOFF = 8     # seconds to wait inside a worker after a 429/403
+RATE_LIMIT_GIVEUP = 60     # bail out of a pass if this many *consecutive* RL responses
 
 
 # Per-thread session so each worker keeps its own connection alive.
@@ -62,9 +64,10 @@ def _session() -> requests.Session:
     return s
 
 
-# Shared counter so workers can bail collectively if screener.in starts
-# rejecting us in a burst.
 class RateLimitTracker:
+    """Shared signal so workers can bail collectively when screener.in
+    flips into block mode."""
+
     def __init__(self):
         self.consecutive = 0
         self.total = 0
@@ -164,12 +167,21 @@ def _r(v, dp=2):
     return None if v is None else round(v, dp)
 
 
-def fetch_one(symbol, tracker: RateLimitTracker):
+def fetch_one(symbol, tracker: RateLimitTracker, polite_sleep: float = 0.0):
+    """Return parsed record dict on success, or a sentinel tuple on failure:
+       ("rate_limit", symbol)  — got 403/429; should retry later
+       ("missing",    symbol)  — page wasn't found / no quarterly results
+       ("error",      symbol)  — network or parse error
+    """
     if tracker.should_skip():
-        return None
+        return ("error", symbol)
+
+    if polite_sleep:
+        time.sleep(polite_sleep)
 
     sess = _session()
     r = None
+    saw_rate_limit = False
     for path in (
         "/company/" + symbol + "/consolidated/",
         "/company/" + symbol + "/",
@@ -180,19 +192,21 @@ def fetch_one(symbol, tracker: RateLimitTracker):
             continue
 
         if resp.status_code == 200 and "Quarterly Results" in resp.text:
-            tracker.reset()  # clear rate-limit streak on success
+            tracker.reset()
             r = resp
             break
 
         if resp.status_code in (403, 429):
             tracker.hit()
-            # Back off; don't try the second path immediately, it'll fail too.
+            saw_rate_limit = True
+            # Brief backoff; do NOT try the second path — it'll fail too.
             time.sleep(RATE_LIMIT_BACKOFF)
-            return None
+            break
 
-        # 404 / 200-but-no-quarters: try the next path
+        # 404 or 200-with-no-quarters: try the next path silently.
+
     if r is None:
-        return None
+        return ("rate_limit", symbol) if saw_rate_limit else ("missing", symbol)
 
     soup = BeautifulSoup(r.text, "html.parser")
     chips = _ratios_top(soup)
@@ -293,7 +307,71 @@ def _metrics_definition():
     ]
 
 
-def main(workers=3):
+def _scrape_pass(symbols, workers, polite_sleep, label, log):
+    """Run one scraping pass. Returns (records, missed_rate_limit, missed_other)."""
+    tracker = RateLimitTracker()
+    records = []
+    missed_rl = []
+    missed_other = []
+    t0 = time.time()
+
+    log("  pass '" + label + "' starting: " + str(len(symbols))
+        + " symbols, workers=" + str(workers)
+        + ", polite_sleep=" + str(polite_sleep) + "s")
+
+    with ThreadPoolExecutor(max_workers=workers) as ex:
+        futures = {
+            ex.submit(fetch_one, s, tracker, polite_sleep): s
+            for s in symbols
+        }
+        for i, fut in enumerate(as_completed(futures), 1):
+            try:
+                res = fut.result()
+            except Exception as e:
+                log("    ! " + str(e)[:120])
+                missed_other.append(futures[fut])
+                continue
+
+            if isinstance(res, dict):
+                records.append(res)
+            elif isinstance(res, tuple):
+                kind, sym = res
+                if kind == "rate_limit":
+                    missed_rl.append(sym)
+                else:
+                    missed_other.append(sym)
+
+            if i % 25 == 0:
+                log("    " + str(i) + "/" + str(len(symbols))
+                    + " (" + str(int(time.time() - t0)) + "s kept=" + str(len(records))
+                    + " rate_limited=" + str(tracker.total) + ")")
+
+            if tracker.should_skip():
+                log("    ! rate-limit streak hit " + str(RATE_LIMIT_GIVEUP)
+                    + " — aborting this pass")
+                # Remaining futures will see should_skip() and short-circuit;
+                # whatever symbols they were assigned go into missed_rl.
+                break
+
+    # Any symbols whose futures never completed (because we broke out) end up
+    # missed too. Collect them.
+    seen_syms = (
+        {r["symbol"] for r in records}
+        | set(missed_rl)
+        | set(missed_other)
+    )
+    for s in symbols:
+        if s not in seen_syms:
+            missed_rl.append(s)
+
+    log("  pass '" + label + "' done in " + str(int(time.time() - t0)) + "s: "
+        + "kept=" + str(len(records))
+        + ", rate_limited=" + str(len(missed_rl))
+        + ", missing=" + str(len(missed_other)))
+    return records, missed_rl, missed_other
+
+
+def main():
     prog = open("scrape_progress.txt", "w", buffering=1, encoding="utf-8")
 
     def log(msg):
@@ -303,33 +381,44 @@ def main(workers=3):
 
     log("Fetching Nifty 500 list...")
     symbols = get_nifty500()
-    log(" " + str(len(symbols)) + " symbols. Scraping screener.in...")
+    log(str(len(symbols)) + " symbols. Scraping screener.in...")
 
-    tracker = RateLimitTracker()
-    records = []
-    t0 = time.time()
-    with ThreadPoolExecutor(max_workers=workers) as ex:
-        futures = {ex.submit(fetch_one, s, tracker): s for s in symbols}
-        for i, fut in enumerate(as_completed(futures), 1):
-            try:
-                rec = fut.result()
-            except Exception as e:
-                log(" ! " + str(e)[:120])
-                rec = None
-            if rec:
-                records.append(rec)
-            if i % 25 == 0:
-                log(" " + str(i) + "/" + str(len(symbols))
-                    + " (" + str(int(time.time() - t0)) + "s kept=" + str(len(records))
-                    + " rate_limited=" + str(tracker.total) + ")")
-            if tracker.should_skip():
-                log("  ! rate-limit streak hit " + str(RATE_LIMIT_GIVEUP)
-                    + " — aborting remaining work")
-                # Let pending futures finish naturally; they'll see should_skip() and return None.
-                break
+    overall_t0 = time.time()
 
-    log(" done scraping in " + str(int(time.time() - t0)) + "s "
-        + "(kept=" + str(len(records)) + ", rate_limited=" + str(tracker.total) + ")")
+    # ---- Pass 1: fast, 3 workers, no per-request sleep ----
+    pass1_records, pass1_rl, pass1_missing = _scrape_pass(
+        symbols, workers=3, polite_sleep=0.0, label="fast", log=log
+    )
+
+    # ---- Cooldown so screener.in stops seeing us as a burst ----
+    if pass1_rl:
+        log("Cooling down 30s before retry pass...")
+        time.sleep(30)
+
+    # ---- Pass 2: sequential, slow, only retry the rate-limited symbols ----
+    pass2_records = []
+    pass2_rl = []
+    pass2_missing = []
+    if pass1_rl:
+        pass2_records, pass2_rl, pass2_missing = _scrape_pass(
+            pass1_rl, workers=1, polite_sleep=1.5, label="retry", log=log
+        )
+
+    # ---- Pass 3: very-slow last-chance for stragglers still rate-limited ----
+    pass3_records = []
+    if pass2_rl:
+        log("Cooling down 30s before final pass...")
+        time.sleep(30)
+        pass3_records, _, _ = _scrape_pass(
+            pass2_rl, workers=1, polite_sleep=3.0, label="final", log=log
+        )
+
+    records = pass1_records + pass2_records + pass3_records
+    log("Total kept after all passes: " + str(len(records))
+        + " (took " + str(int(time.time() - overall_t0)) + "s)")
+    if pass1_missing or pass2_missing:
+        log("  not on screener.in (no quarterly page): "
+            + str(len(pass1_missing) + len(pass2_missing)))
 
     out = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -341,11 +430,10 @@ def main(workers=3):
     }
     with open("dataset.json", "w", encoding="utf-8") as f:
         json.dump(out, f, separators=(",", ":"), ensure_ascii=False)
-    log("Done. " + str(len(records)) + " stocks -> dataset.json in "
-        + str(int(time.time() - t0)) + "s")
+    log("Done. " + str(len(records)) + " stocks -> dataset.json")
 
-    # Fail the job loudly if we got almost nothing back, so the workflow
-    # doesn't silently commit a near-empty dataset.json over a good one.
+    # Fail loudly if the dataset is way smaller than we expect, so the
+    # workflow doesn't silently commit a broken dataset over a good one.
     if len(records) < 100:
         log("FATAL: only " + str(len(records)) + " stocks scraped — not overwriting.")
         sys.exit(1)
