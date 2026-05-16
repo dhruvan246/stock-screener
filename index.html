@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>10-from-top Stock Screener</title>
+<style>
+  :root{
+    --bg:#0f1419; --card:#1a212b; --text:#e6edf3; --muted:#8b949e;
+    --accent:#3fb950; --warn:#d29922; --row-hover:#222b36; --border:#30363d;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+       background:var(--bg);color:var(--text);line-height:1.5}
+  .wrap{max-width:1100px;margin:0 auto;padding:32px 20px 80px}
+  h1{margin:0 0 6px;font-size:28px;letter-spacing:-.01em}
+  .sub{color:var(--muted);margin:0 0 28px}
+  .criteria{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+            gap:12px;margin:0 0 24px}
+  .crit{background:var(--card);border:1px solid var(--border);border-radius:10px;
+        padding:14px 16px;font-size:14px}
+  .crit b{display:block;font-size:12px;color:var(--accent);text-transform:uppercase;
+          letter-spacing:.06em;margin-bottom:4px}
+  .meta{font-size:13px;color:var(--muted);margin:16px 0;display:flex;flex-wrap:wrap;
+        gap:12px;align-items:center}
+  .badge{display:inline-block;background:var(--card);border:1px solid var(--border);
+         border-radius:6px;padding:2px 8px;font-size:12px;color:var(--muted)}
+  table{width:100%;border-collapse:collapse;background:var(--card);
+        border:1px solid var(--border);border-radius:10px;overflow:hidden;
+        font-size:14px}
+  th,td{padding:10px 12px;text-align:right;border-bottom:1px solid var(--border)}
+  th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}
+  thead th{background:#161c25;font-weight:600;cursor:pointer;user-select:none;
+           font-size:12px;text-transform:uppercase;letter-spacing:.05em;
+           color:var(--muted);position:sticky;top:0}
+  thead th:hover{color:var(--text)}
+  thead th .arrow{display:inline-block;width:12px;color:var(--accent);margin-left:4px}
+  tbody tr:hover{background:var(--row-hover)}
+  tbody tr:last-child td{border-bottom:0}
+  td.num{font-variant-numeric:tabular-nums}
+  td.sym{font-weight:600;color:var(--text)}
+  td.pos{color:var(--accent)}
+  .footer{margin-top:24px;color:var(--muted);font-size:13px}
+  .footer a{color:#58a6ff;text-decoration:none}
+  .footer a:hover{text-decoration:underline}
+  .run{background:var(--card);border:1px solid var(--border);border-radius:10px;
+       padding:16px;margin:24px 0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+       font-size:13px;overflow-x:auto;white-space:pre;color:#c9d1d9}
+  @media (max-width:640px){th,td{padding:8px 10px;font-size:13px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>10-from-top Stock Screener</h1>
+  <p class="sub">Self-built rebuild of the Trendlyne screener
+    <a href="https://trendlyne.com/fundamentals/stock-screener/491229/10-from-top/"
+       target="_blank" rel="noopener" style="color:#58a6ff">"10% from top"</a>.
+    Stocks at or near 52-week highs after at least doubling from their lows, with growing profits.</p>
+
+  <div class="criteria">
+    <div class="crit"><b>Criterion 1</b>% distance from 52-week LOW &gt; 100</div>
+    <div class="crit"><b>Criterion 2</b>% distance from 52-week HIGH &lt; 10</div>
+    <div class="crit"><b>Criterion 3</b>Latest-quarter Net Profit YoY &gt; 0</div>
+  </div>
+
+  <div class="meta">
+    <span class="badge">Universe: Nifty 500</span>
+    <span class="badge">Data source: Yahoo Finance</span>
+    <span class="badge" id="lastrun"></span>
+    <span class="badge" id="count"></span>
+  </div>
+
+  <table id="tbl">
+    <thead>
+      <tr>
+        <th data-key="Rank">#</th>
+        <th data-key="Symbol">Symbol</th>
+        <th data-key="LTP">LTP</th>
+        <th data-key="from52WHigh">% from High</th>
+        <th data-key="from52WLow">% from Low</th>
+        <th data-key="NetProfitYoY">NP YoY %</th>
+        <th data-key="MarketCap">Mcap (Cr)</th>
+        <th data-key="PE">PE</th>
+        <th data-key="PB">PB</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+
+  <p class="footer">
+    Snapshot generated <span id="snapshot-date">16 May 2026</span>.
+    To run your own fresh screen:
+  </p>
+  <div class="run">pip install yfinance pandas requests
+curl -sSL https://raw.githubusercontent.com/dhruvan246/stock-screener/main/ten_from_top_screener.py | python -</div>
+  <p class="footer">
+    Source code: <a href="https://github.com/dhruvan246/stock-screener" target="_blank">github.com/dhruvan246/stock-screener</a>
+  </p>
+
+</div>
+
+<script>
+const rows = [
+  {Rank:1,  Symbol:"LAURUSLABS", LTP:1323.60, from52WHigh:0.32, from52WLow:126.45, NetProfitYoY:172.65, MarketCap:71472.6,  PE:84.74,  PB:14.88},
+  {Rank:2,  Symbol:"MCX",        LTP:3391.00, from52WHigh:0.93, from52WLow:175.49, NetProfitYoY:150.64, MarketCap:86305.7,  PE:64.94,  PB:20.51},
+  {Rank:3,  Symbol:"KIRLOSENG",  LTP:1740.20, from52WHigh:1.96, from52WLow:137.73, NetProfitYoY:56.21,  MarketCap:25299.0,  PE:44.64,  PB:7.50},
+  {Rank:4,  Symbol:"IDEA",       LTP:12.95,   from52WHigh:2.85, from52WLow:111.60, NetProfitYoY:20.02,  MarketCap:140304.2, PE:null,   PB:-1.70},
+  {Rank:5,  Symbol:"ANANDRATHI", LTP:3583.10, from52WHigh:4.07, from52WLow:103.19, NetProfitYoY:40.35,  MarketCap:29747.1,  PE:75.75,  PB:29.80},
+  {Rank:6,  Symbol:"ACUTAAS",    LTP:2731.00, from52WHigh:4.17, from52WLow:157.88, NetProfitYoY:140.16, MarketCap:22359.0,  PE:78.12,  PB:13.52},
+  {Rank:7,  Symbol:"CPPLUS",     LTP:2464.30, from52WHigh:4.30, from52WLow:142.79, NetProfitYoY:138.82, MarketCap:29029.0,  PE:113.61, PB:17.42},
+  {Rank:8,  Symbol:"JAINREC",    LTP:566.15,  from52WHigh:4.68, from52WLow:128.68, NetProfitYoY:129.64, MarketCap:19537.0,  PE:56.50,  PB:13.44},
+  {Rank:9,  Symbol:"HFCL",       LTP:147.89,  from52WHigh:4.77, from52WLow:147.23, NetProfitYoY:32.55,  MarketCap:22631.1,  PE:422.54, PB:4.56},
+  {Rank:10, Symbol:"ATHERENERG", LTP:937.40,  from52WHigh:5.26, from52WLow:211.43, NetProfitYoY:57.23,  MarketCap:35900.8,  PE:null,   PB:13.94},
+  {Rank:11, Symbol:"ADANIPOWER", LTP:221.33,  from52WHigh:5.58, from52WLow:109.95, NetProfitYoY:52.34,  MarketCap:426828.2, PE:33.43,  PB:6.58},
+  {Rank:12, Symbol:"POWERINDIA", LTP:32535.0, from52WHigh:7.29, from52WLow:110.90, NetProfitYoY:90.29,  MarketCap:145016.2, PE:169.49, PB:31.64},
+  {Rank:13, Symbol:"BELRISE",    LTP:209.46,  from52WHigh:8.45, from52WLow:134.95, NetProfitYoY:21.25,  MarketCap:18639.4,  PE:39.08,  PB:3.44},
+  {Rank:14, Symbol:"NATIONALUM", LTP:403.60,  from52WHigh:9.33, from52WLow:134.39, NetProfitYoY:1.84,   MarketCap:74126.5,  PE:12.06,  PB:3.43},
+];
+
+const fmt = (v, dec=2) => v == null ? "—" : Number(v).toLocaleString("en-IN", {minimumFractionDigits:dec, maximumFractionDigits:dec});
+
+let sortKey = "from52WHigh", sortDir = 1;
+
+function render(){
+  const tb = document.getElementById("tbody");
+  const sorted = [...rows].sort((a,b)=>{
+    const x = a[sortKey], y = b[sortKey];
+    if (x == null) return 1; if (y == null) return -1;
+    return (x > y ? 1 : x < y ? -1 : 0) * sortDir;
+  });
+  tb.innerHTML = sorted.map((r,i)=>`
+    <tr>
+      <td class="num">${i+1}</td>
+      <td class="sym">${r.Symbol}</td>
+      <td class="num">${fmt(r.LTP)}</td>
+      <td class="num">${fmt(r.from52WHigh)}</td>
+      <td class="num pos">${fmt(r.from52WLow)}</td>
+      <td class="num pos">${fmt(r.NetProfitYoY)}</td>
+      <td class="num">${fmt(r.MarketCap, 0)}</td>
+      <td class="num">${fmt(r.PE)}</td>
+      <td class="num">${fmt(r.PB)}</td>
+    </tr>`).join("");
+  document.querySelectorAll("thead th").forEach(th=>{
+    th.querySelector(".arrow")?.remove();
+    if (th.dataset.key === sortKey){
+      const arr = document.createElement("span");
+      arr.className = "arrow";
+      arr.textContent = sortDir === 1 ? "▲" : "▼";
+      th.appendChild(arr);
+    }
+  });
+  document.getElementById("count").textContent = rows.length + " matches";
+}
+
+document.querySelectorAll("thead th").forEach(th=>{
+  th.addEventListener("click", ()=>{
+    const k = th.dataset.key;
+    if (sortKey === k) sortDir = -sortDir; else { sortKey = k; sortDir = 1; }
+    render();
+  });
+});
+
+document.getElementById("lastrun").textContent = "Snapshot: 16 May 2026";
+render();
+</script>
+</body>
+</html>
