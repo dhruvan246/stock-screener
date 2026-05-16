@@ -116,6 +116,7 @@
         <option value="">— select a saved screen —</option>
       </select>
       <button class="btn" id="preset-load" title="Load selected screen">Load</button>
+      <button class="btn" id="preset-backtest" title="Backtest selected screen">📈 Backtest</button>
       <button class="btn danger" id="preset-delete" title="Delete selected screen">Delete</button>
       <span class="grow"></span>
       <button class="btn primary" id="preset-save" title="Save current criteria">＋ Save current</button>
@@ -128,6 +129,7 @@
         <button class="btn" id="add-row">+ Add criterion</button>
         <button class="btn ghost" id="reset">Reset</button>
         <button class="btn ghost" id="share">Copy share link</button>
+        <button class="btn ghost" id="backtest" title="Backtest current criteria">📈 Backtest</button>
       </div>
       <button class="btn primary" id="run">Run screen</button>
     </div>
@@ -473,6 +475,27 @@ document.getElementById("preset-save").addEventListener("click", savePreset);
 document.getElementById("preset-load").addEventListener("click", loadPreset);
 document.getElementById("preset-delete").addEventListener("click", deletePreset);
 document.getElementById("preset-select").addEventListener("dblclick", loadPreset);
+
+// ===== Backtest =====
+function openBacktest(rowsToBacktest, presetName){
+  const clean = rowsToBacktest.filter(r => r.value !== "" && r.value !== null && !isNaN(parseFloat(r.value)));
+  if (clean.length === 0){ toast("Add a numeric criterion before backtesting."); return; }
+  let hash = encodeURIComponent(JSON.stringify(clean));
+  if (presetName) hash += "&name=" + encodeURIComponent(presetName);
+  window.open("backtest.html#" + hash, "_blank");
+}
+document.getElementById("backtest").addEventListener("click", () => {
+  openBacktest(rows, activePresetName || null);
+});
+document.getElementById("preset-backtest").addEventListener("click", () => {
+  const sel = document.getElementById("preset-select");
+  const name = sel.value;
+  if (!name){ toast("Pick a saved screen first."); return; }
+  const presets = readPresets();
+  const p = presets[name];
+  if (!p){ toast("Preset not found."); return; }
+  openBacktest(p.rows, name);
+});
 
 load();
 </script>
