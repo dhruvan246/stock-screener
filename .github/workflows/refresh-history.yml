@@ -1,0 +1,50 @@
+name: Build history dataset
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 7 1 * *"  # monthly on the 1st at 7 AM UTC
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests beautifulsoup4 pandas yfinance
+
+      - name: Build history
+        run: python build_history.py
+        timeout-minutes: 35
+
+      - name: Upload progress log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: history-progress
+          path: history_progress.txt
+          if-no-files-found: ignore
+
+      - name: Commit history.json if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -n "$(git status --porcelain history.json)" ]; then
+            git add history.json
+            git commit -m "auto: refresh history $(date -u +%Y-%m-%d)"
+            git push
+            echo "History committed."
+          else
+            echo "No changes."
+          fi
