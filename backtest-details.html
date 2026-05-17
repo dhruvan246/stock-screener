@@ -1,0 +1,885 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Backtest Details · Stock Screener</title>
+<style>
+  :root{
+    --bg:#0f1419; --card:#1a212b; --card-2:#161c25; --text:#e6edf3; --muted:#8b949e;
+    --accent:#3fb950; --warn:#d29922; --danger:#f85149;
+    --row-hover:#222b36; --border:#30363d; --link:#58a6ff;
+    --pos:#3fb950; --neg:#f85149; --query-bg:rgba(88,166,255,.08);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Roboto,-apple-system,Segoe UI,sans-serif;
+       background:var(--bg);color:var(--text);line-height:1.5;font-size:14px}
+  a{color:var(--link);text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  .topnav{display:flex;align-items:center;gap:18px;padding:14px 24px;
+          border-bottom:1px solid var(--border);background:var(--card-2)}
+  .topnav .brand{font-weight:600;font-size:16px;margin-right:8px}
+  .topnav a{color:var(--muted);font-size:14px}
+  .topnav a.active{color:var(--text);font-weight:600}
+
+  .wrap{max-width:1320px;margin:0 auto;padding:18px 24px 80px}
+
+  .subnav{display:flex;align-items:center;gap:24px;padding-bottom:10px;border-bottom:1px solid var(--border);
+          margin-bottom:14px;flex-wrap:wrap;font-size:13px}
+  .subnav a{color:var(--muted);padding:4px 2px}
+  .subnav a.active{color:var(--link);border-bottom:2px solid var(--link);padding-bottom:8px;margin-bottom:-11px;font-weight:600}
+
+  .crumb{color:var(--muted);font-size:13px;margin-bottom:8px}
+  .crumb a{color:var(--link)}
+  .crumb .sep{margin:0 4px;color:var(--border)}
+
+  .title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:8px}
+  .title-row h1{margin:0;font-size:24px;font-weight:700}
+  .preamble{color:var(--muted);font-size:13px;margin-bottom:4px}
+  .last-updated{color:var(--muted);font-size:12px;margin-bottom:18px}
+
+  .top-actions{display:flex;gap:6px;align-items:flex-end}
+  .top-action{display:flex;flex-direction:column;align-items:center;font-size:11px;color:var(--muted);gap:3px}
+  .top-action .btn{width:38px;height:38px;border-radius:8px;background:var(--card-2);
+                   border:1px solid var(--border);color:var(--text);font-size:14px;cursor:pointer;
+                   display:flex;align-items:center;justify-content:center}
+  .top-action .btn:hover{background:var(--row-hover)}
+  .top-action.active .btn{background:#fef3c7;border-color:#fde68a;color:#92400e}
+  .top-action.delete .btn:hover{color:var(--danger);border-color:var(--danger)}
+
+  /* Summary card */
+  .summary-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 22px;margin-bottom:6px}
+  .summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px 24px}
+  @media (max-width:900px){ .summary-grid{grid-template-columns:repeat(2,1fr)} }
+  .summary-grid .cell .lbl{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+  .summary-grid .cell .val{font-size:13px;font-weight:500}
+  .summary-grid .cell.full{grid-column:1 / -1}
+  .summary-grid .query-text{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;color:var(--link);
+                             background:var(--query-bg);padding:6px 10px;border-radius:6px;display:block}
+
+  .csv-link{margin:14px 0 18px;font-size:13px}
+
+  /* Tabs */
+  .tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:18px;font-size:13px;font-weight:600}
+  .tabs .tab{padding:10px 16px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;text-transform:uppercase;letter-spacing:.04em}
+  .tabs .tab.active{color:var(--link);border-bottom-color:var(--link)}
+  .tabs .tab:hover{color:var(--text)}
+
+  /* Common card block */
+  .card-block{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:18px}
+  .card-block h3{margin:0 0 14px;font-size:15px;font-weight:600}
+
+  /* Headline metrics row */
+  .period-pill{display:inline-block;background:rgba(88,166,255,.12);color:var(--link);font-size:12px;font-weight:600;
+               padding:4px 10px;border-radius:14px;margin-bottom:14px}
+  .headline-row{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-bottom:18px}
+  @media (max-width:760px){ .headline-row{grid-template-columns:1fr} }
+  .headline{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px}
+  .headline .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+  .headline .val{font-size:26px;font-weight:700}
+  .headline .val.pos{color:var(--pos)} .headline .val.neg{color:var(--neg)}
+  .headline .sub{font-size:11.5px;color:var(--muted);margin-top:4px}
+
+  .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px}
+  @media (max-width:760px){ .info-grid{grid-template-columns:1fr} }
+  .info-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px}
+  .info-card h4{margin:0 0 12px;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+  .info-card .row{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:1px dashed var(--border);font-size:13px}
+  .info-card .row:last-child{border-bottom:0}
+  .info-card .row .l{color:var(--muted)}
+  .info-card .row .v{font-weight:600}
+  .info-card .row .v.pos{color:var(--pos)} .info-card .row .v.neg{color:var(--neg)}
+  .info-card .small{font-size:11.5px;color:var(--muted);font-weight:400;margin-left:6px}
+
+  /* Equity chart */
+  .equity-chart{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:18px}
+  .equity-chart .ec-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-size:13px}
+  .equity-chart .legend{display:flex;gap:14px;color:var(--muted);font-size:12px}
+  .equity-chart .legend .sw{display:inline-block;width:14px;height:3px;vertical-align:middle;margin-right:5px}
+  .equity-chart svg{display:block;width:100%;height:auto}
+
+  /* Stats grid (entry/exit + period analysis) */
+  .stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}
+  @media (max-width:880px){ .stats-grid{grid-template-columns:repeat(2,1fr)} }
+  @media (max-width:560px){ .stats-grid{grid-template-columns:1fr} }
+  .stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+  .stat .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+  .stat .v{font-size:20px;font-weight:700}
+  .stat .v.pos{color:var(--pos)} .stat .v.neg{color:var(--neg)}
+  .stat .sub{font-size:11.5px;color:var(--muted);margin-top:4px}
+
+  /* Data table */
+  .dt{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:18px}
+  .dt-toolbar{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);gap:12px;flex-wrap:wrap}
+  .dt-toolbar .left,.dt-toolbar .right{display:flex;align-items:center;gap:10px;font-size:13px}
+  .dt-toolbar select,.dt-toolbar input{padding:7px 10px;background:var(--card-2);color:var(--text);border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit}
+  .dt-toolbar .export-btn{background:var(--card-2);color:var(--link);border:1px solid var(--border);
+                          padding:6px 12px;border-radius:6px;cursor:pointer;font-size:13px}
+  .dt-toolbar .export-btn:hover{background:var(--row-hover)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  thead th{padding:10px 14px;background:var(--card-2);color:var(--muted);font-size:11px;font-weight:600;
+           text-transform:uppercase;letter-spacing:.04em;text-align:left;border-bottom:1px solid var(--border);position:sticky;top:0;cursor:pointer;user-select:none}
+  thead th.right{text-align:right}
+  thead th.sortable:hover{color:var(--text)}
+  thead th .sort-ind{margin-left:4px;opacity:.5}
+  tbody td{padding:10px 14px;border-bottom:1px solid var(--border)}
+  tbody td.right{text-align:right}
+  tbody tr:hover{background:var(--row-hover)}
+  .pill{display:inline-block;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:600}
+  .pill.active{background:rgba(88,166,255,.15);color:var(--link)}
+  .pill.exit{background:rgba(139,148,158,.15);color:var(--muted)}
+  .ret-cell.pos{color:var(--pos);font-weight:600}
+  .ret-cell.neg{color:var(--neg);font-weight:600}
+  .pagination{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-top:1px solid var(--border);font-size:12.5px;color:var(--muted)}
+  .pagination .pager{display:flex;gap:4px;align-items:center}
+  .pagination button{background:var(--card-2);border:1px solid var(--border);color:var(--text);padding:5px 10px;border-radius:5px;cursor:pointer;font-size:12px}
+  .pagination button:disabled{opacity:.35;cursor:not-allowed}
+  .pagination .pg-num{padding:5px 9px;background:var(--card-2);border:1px solid var(--border);border-radius:5px}
+  .pagination .pg-num.active{background:var(--link);color:#fff;border-color:var(--link)}
+
+  /* Period analysis bar chart */
+  .period-bars{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:18px}
+  .period-bars svg{display:block;width:100%;height:auto}
+
+  .empty{padding:48px 24px;text-align:center;color:var(--muted)}
+  .empty h3{margin:0 0 8px;color:var(--text)}
+  .footer-note{margin-top:18px;color:var(--muted);font-size:12px}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+         background:var(--card);border:1px solid var(--border);color:var(--text);
+         padding:10px 16px;border-radius:8px;font-size:13px;
+         box-shadow:0 4px 16px rgba(0,0,0,.4);
+         opacity:0;pointer-events:none;transition:opacity .2s;z-index:99}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<div class="topnav">
+  <span class="brand">📊 Stock Screener</span>
+  <a href="builder.html">Builder</a>
+  <a href="my-screens.html">My Screens</a>
+  <a href="my-backtests.html" class="active">My Backtests</a>
+  <span style="flex:1"></span>
+  <a href="https://github.com/dhruvan246/stock-screener" target="_blank">code ↗</a>
+</div>
+
+<div class="wrap" id="wrap">
+
+  <div class="subnav">
+    <a href="#" class="active">This Screen ▾</a>
+    <a href="builder.html">＋ Create New Screener</a>
+    <a href="my-screens.html">My Stock Screeners</a>
+    <a href="my-backtests.html">My Backtests</a>
+  </div>
+
+  <div class="crumb">
+    <a href="my-screens.html">My Stock Screeners</a>
+    <span class="sep">/</span>
+    <a id="crumb-screen" href="#">Screen</a>
+    <span class="sep">/</span>
+    <a id="crumb-backtests" href="#">Backtests</a>
+    <span class="sep">/</span>
+    <span id="crumb-current">Details</span>
+  </div>
+
+  <!-- Title + actions -->
+  <div class="title-row">
+    <div>
+      <div class="preamble">Backtest</div>
+      <h1 id="title">Loading…</h1>
+      <div class="last-updated" id="last-updated"></div>
+    </div>
+    <div class="top-actions">
+      <div class="top-action"><button class="btn" id="btn-alert" title="Set alert">🔔</button></div>
+      <div class="top-action active"><button class="btn" id="btn-rerun" title="Re-run">⏱</button></div>
+      <div class="top-action delete"><button class="btn" id="btn-delete" title="Delete this run">🗑</button></div>
+    </div>
+  </div>
+
+  <!-- Summary card -->
+  <div class="summary-card">
+    <div class="summary-grid">
+      <div class="cell full">
+        <div class="lbl">Backtest Query</div>
+        <span class="query-text" id="s-query">—</span>
+      </div>
+      <div class="cell"><div class="lbl">Sortby</div><div class="val" id="s-sortby">—</div></div>
+      <div class="cell"><div class="lbl">Max Weightage Per Stock</div><div class="val" id="s-maxw">—</div></div>
+      <div class="cell"><div class="lbl">Start Date</div><div class="val" id="s-start">—</div></div>
+      <div class="cell"><div class="lbl">End Date</div><div class="val" id="s-end">—</div></div>
+      <div class="cell"><div class="lbl">Period</div><div class="val" id="s-period">—</div></div>
+      <div class="cell"><div class="lbl">Group</div><div class="val" id="s-group">NIFTY 500</div></div>
+      <div class="cell"><div class="lbl">Frequency</div><div class="val" id="s-freq">—</div></div>
+    </div>
+  </div>
+
+  <div class="csv-link">
+    <a href="#" id="csv-link">⇩ Download result as csv</a>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" data-tab="overview">Overview</div>
+    <div class="tab" data-tab="entry-exit">Entry &amp; Exit</div>
+    <div class="tab" data-tab="period">Period Analysis</div>
+  </div>
+
+  <!-- ============================== TAB: OVERVIEW ============================== -->
+  <div class="tab-panel" data-panel="overview">
+
+    <span class="period-pill" id="period-pill">—</span>
+
+    <div class="headline-row">
+      <div class="headline">
+        <div class="lbl">Cumulative Returns</div>
+        <div class="val" id="hd-cumret">—</div>
+        <div class="sub">Portfolio</div>
+      </div>
+      <div class="headline">
+        <div class="lbl">Benchmark Returns</div>
+        <div class="val" id="hd-bench">—</div>
+        <div class="sub">Nifty 500 avg</div>
+      </div>
+      <div class="headline">
+        <div class="lbl">Active Returns</div>
+        <div class="val" id="hd-active">—</div>
+        <div class="sub">Portfolio − Benchmark</div>
+      </div>
+    </div>
+
+    <div class="equity-chart">
+      <div class="ec-head">
+        <div style="font-weight:600">Returns over the backtest period</div>
+        <div class="legend">
+          <span><span class="sw" style="background:#58a6ff"></span>Portfolio</span>
+          <span><span class="sw" style="background:#f85149"></span>Benchmark (NIFTY500)</span>
+        </div>
+      </div>
+      <div id="equity-svg"></div>
+    </div>
+
+    <div class="info-grid">
+      <div class="info-card">
+        <h4>Backtest Information</h4>
+        <div class="row"><div class="l">CAGR</div><div class="v" id="bi-cagr">—</div></div>
+        <div class="row"><div class="l">Benchmark</div><div class="v">NIFTY 500</div></div>
+        <div class="row"><div class="l">Group</div><div class="v">NIFTY 500</div></div>
+      </div>
+      <div class="info-card">
+        <h4>Portfolio Analysis</h4>
+        <div class="row"><div class="l">Winners / Losers</div><div class="v" id="bi-wl">—</div></div>
+        <div class="row"><div class="l">Max Drawdown</div><div class="v" id="bi-mdd">—</div></div>
+        <div class="row"><div class="l small">Drawdown Period</div><div class="v small" id="bi-mddp">—</div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============================== TAB: ENTRY & EXIT ========================= -->
+  <div class="tab-panel" data-panel="entry-exit" style="display:none">
+
+    <div class="stats-grid">
+      <div class="stat"><div class="l">Average Stock Return</div><div class="v" id="ee-avg">—</div></div>
+      <div class="stat"><div class="l">Median Stock Return</div><div class="v" id="ee-median">—</div></div>
+      <div class="stat"><div class="l">Active on Backtest End Date</div><div class="v" id="ee-active">—</div></div>
+      <div class="stat"><div class="l">Total Stocks Entries</div><div class="v" id="ee-entries">—</div></div>
+      <div class="stat"><div class="l">Total Winners</div><div class="v" id="ee-winners">—</div></div>
+      <div class="stat"><div class="l">Max Winner</div><div class="v" id="ee-maxw">—</div><div class="sub" id="ee-maxw-sub"></div></div>
+      <div class="stat"><div class="l">Total Stocks Exits</div><div class="v" id="ee-exits">—</div></div>
+      <div class="stat"><div class="l">Total Losers</div><div class="v" id="ee-losers">—</div></div>
+      <div class="stat"><div class="l">Max Loser</div><div class="v" id="ee-maxl">—</div><div class="sub" id="ee-maxl-sub"></div></div>
+    </div>
+
+    <div class="dt">
+      <div class="dt-toolbar">
+        <div class="left">
+          Show
+          <select id="ee-page-size">
+            <option value="10">10</option>
+            <option value="25" selected>25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+          entries
+        </div>
+        <div class="right">
+          <button class="export-btn" id="ee-export">⇩ Export CSV</button>
+          <input type="search" id="ee-search" placeholder="Search stock…">
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <table id="ee-table">
+          <thead>
+            <tr>
+              <th class="sortable" data-sort="name">Stock <span class="sort-ind"></span></th>
+              <th class="sortable" data-sort="entry_d">Entry Date <span class="sort-ind"></span></th>
+              <th class="sortable right" data-sort="entry_px">Entry Price <span class="sort-ind"></span></th>
+              <th class="sortable" data-sort="exit_d">Exit Date <span class="sort-ind"></span></th>
+              <th class="sortable right" data-sort="exit_px">Close Price <span class="sort-ind"></span></th>
+              <th class="sortable right" data-sort="ret">Returns Delivered (%) <span class="sort-ind"></span></th>
+            </tr>
+          </thead>
+          <tbody id="ee-tbody"></tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <div id="ee-page-info">—</div>
+        <div class="pager" id="ee-pager"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============================== TAB: PERIOD ANALYSIS ====================== -->
+  <div class="tab-panel" data-panel="period" style="display:none">
+
+    <div class="stats-grid">
+      <div class="stat"><div class="l">Average Stock Count per Period</div><div class="v" id="pa-avgn">—</div></div>
+      <div class="stat"><div class="l">Max Period Return</div><div class="v" id="pa-maxret">—</div><div class="sub" id="pa-maxret-sub"></div></div>
+      <div class="stat"><div class="l">Mean Period Return</div><div class="v" id="pa-mean">—</div></div>
+      <div class="stat"><div class="l">Min Period Return</div><div class="v" id="pa-minret">—</div><div class="sub" id="pa-minret-sub"></div></div>
+      <div class="stat"><div class="l">Average Holding Period (months)</div><div class="v" id="pa-hold">—</div></div>
+      <div class="stat"><div class="l">Max Drawdown</div><div class="v" id="pa-mdd">—</div><div class="sub" id="pa-mdd-sub"></div></div>
+    </div>
+
+    <div class="period-bars">
+      <div style="font-weight:600;margin-bottom:10px">Returns over the backtest period</div>
+      <div id="period-bars-svg"></div>
+    </div>
+
+    <div class="dt">
+      <div class="dt-toolbar">
+        <div class="left">Period-by-period detail</div>
+        <div class="right">
+          <button class="export-btn" id="pa-export">⇩ Export CSV</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Period End</th>
+              <th class="right">Stocks</th>
+              <th class="right">Return (%)</th>
+            </tr>
+          </thead>
+          <tbody id="pa-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <p class="footer-note" id="footer-note">
+    Backtest assumes equal-weighted portfolio rebalanced at each period, no transaction costs,
+    survivorship-biased universe (today's Nifty 500 used throughout).
+    Fundamental criteria use the most recently reported quarter/year available at each backtest date.
+  </p>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+//  Storage keys (must match backtest.html)
+// ============================================================
+const BACKTEST_RUNS_KEY    = "backtest_runs_v1";
+const BACKTEST_HISTORY_KEY = "backtest_history_v1";
+
+function readRuns(){
+  try { return JSON.parse(localStorage.getItem(BACKTEST_RUNS_KEY) || "{}") || {}; }
+  catch { return {}; }
+}
+function writeRuns(r){ try { localStorage.setItem(BACKTEST_RUNS_KEY, JSON.stringify(r)); } catch {} }
+function readHistory(){
+  try { return JSON.parse(localStorage.getItem(BACKTEST_HISTORY_KEY) || "[]") || []; }
+  catch { return []; }
+}
+function writeHistory(h){ try { localStorage.setItem(BACKTEST_HISTORY_KEY, JSON.stringify(h)); } catch {} }
+
+function escapeHtml(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function pct(v, dp=2){ return v == null || !isFinite(v) ? "—" : (v * 100).toFixed(dp) + "%"; }
+function cls(v){ return v == null ? "" : (v >= 0 ? "pos" : "neg"); }
+function toast(msg, ms=1700){
+  const el = document.getElementById("toast");
+  el.textContent = msg; el.classList.add("show");
+  clearTimeout(toast._t); toast._t = setTimeout(()=>el.classList.remove("show"), ms);
+}
+
+function fmtDate(d){
+  if (!d) return "—";
+  const dt = new Date(d + (d.length === 10 ? "T00:00:00Z" : ""));
+  if (isNaN(dt)) return d;
+  return dt.toLocaleDateString("en-US", { year:"numeric", month:"short", day:"numeric", timeZone:"UTC" });
+}
+function formatYearsMonths(years){
+  if (years == null || !isFinite(years)) return "—";
+  const tm = Math.round(years * 12);
+  const y = Math.floor(tm / 12); const m = tm % 12;
+  if (y === 0) return `${m} month${m===1?"":"s"}`;
+  if (m === 0) return `${y} year${y===1?"":"s"}`;
+  return `${y} year${y===1?"":"s"}, ${m} month${m===1?"":"s"}`;
+}
+
+// ============================================================
+//  Load metric labels from dataset (for query rendering / sortby label)
+// ============================================================
+let METRICS = [];
+async function loadMetrics(){
+  try {
+    const r = await fetch("dataset.json", { cache: "no-store" });
+    if (r.ok){
+      const ds = await r.json();
+      METRICS = ds.metrics || [];
+    }
+  } catch {}
+}
+function metricLabel(key){
+  if (!key) return "—";
+  if (key === "ltp") return "Last Price";
+  if (key === "market_cap_cr") return "Market Cap";
+  const m = METRICS.find(x => x.key === key);
+  return m ? (m.label + (m.unit ? " ("+m.unit+")" : "")) : key;
+}
+function rowsToQuery(rows){
+  if (!rows || !rows.length) return "(no criteria)";
+  return rows.map((r, i) => (i === 0 ? "" : ` ${r.join || "AND"} `) + `${metricLabel(r.metric)} ${r.op} ${r.value}`).join("");
+}
+
+// ============================================================
+//  Resolve run id from hash, look up full run
+// ============================================================
+function getRunId(){
+  const h = location.hash.slice(1).trim();
+  return h || null;
+}
+
+let RUN = null;     // full run object
+let SLIM = null;    // slim history entry (fallback)
+
+function loadRun(){
+  const id = getRunId();
+  if (!id) return null;
+  const runs = readRuns();
+  if (runs[id]) RUN = runs[id];
+  const hist = readHistory();
+  SLIM = hist.find(h => String(h.id) === String(id)) || null;
+  return id;
+}
+
+// ============================================================
+//  Header / summary rendering
+// ============================================================
+function renderHeader(){
+  const name = (RUN?.name) || (SLIM?.name) || "Backtest";
+  const rows = (RUN?.rows) || (SLIM?.rows) || [];
+  const opts = (RUN?.opts) || {};
+  const summary = (RUN?.summary) || SLIM || {};
+
+  document.title = "Backtest · " + name;
+  document.getElementById("title").textContent = name;
+  document.getElementById("crumb-screen").textContent = name || "Screen";
+  if (name && rows.length){
+    const enc = encodeURIComponent(JSON.stringify(rows)) + "&name=" + encodeURIComponent(name);
+    document.getElementById("crumb-screen").href = "screener.html#" + enc;
+    document.getElementById("crumb-backtests").href = "backtest.html#" + enc;
+  }
+  document.getElementById("last-updated").textContent =
+    "Last Updated: " + (RUN?.ts ? new Date(RUN.ts).toLocaleString("en-IN", {dateStyle:"medium", timeStyle:"short"}) : "—");
+
+  // Summary card
+  document.getElementById("s-query").textContent = rowsToQuery(rows);
+
+  const sortByLabel = opts.sortBy
+    ? `${metricLabel(opts.sortBy)} (${(opts.sortOrder || "desc") === "desc" ? "Prefer High" : "Prefer Low"})`
+    : (SLIM?.sortBy ? `${metricLabel(SLIM.sortBy)} (${(SLIM.sortOrder || "desc") === "desc" ? "Prefer High" : "Prefer Low"})` : "—");
+  document.getElementById("s-sortby").textContent = sortByLabel;
+
+  const maxStocks = opts.maxStocks ?? SLIM?.maxStocks ?? null;
+  document.getElementById("s-maxw").textContent = maxStocks ? `${(100/maxStocks).toFixed(2)} % (1/${maxStocks})` : "Equal-weighted";
+
+  document.getElementById("s-start").textContent = fmtDate(summary.startDate);
+  document.getElementById("s-end").textContent = fmtDate(summary.endDate);
+  document.getElementById("s-period").textContent = formatYearsMonths(summary.years);
+  const freq = opts.freq ?? SLIM?.freq;
+  document.getElementById("s-freq").textContent = freq === "Q" ? "Quarterly" : (freq === "M" ? "Monthly" : "—");
+}
+
+// ============================================================
+//  OVERVIEW tab
+// ============================================================
+function renderOverview(){
+  if (!RUN){ return; }
+  const s = RUN.summary;
+  document.getElementById("period-pill").textContent = (s.years || 0).toFixed(1) + " years";
+  const cumEl = document.getElementById("hd-cumret"); cumEl.textContent = pct(s.totalRet); cumEl.className = "val " + cls(s.totalRet);
+  const bEl = document.getElementById("hd-bench"); bEl.textContent = pct(s.benchTotalRet); bEl.className = "val " + cls(s.benchTotalRet);
+  const active = (s.totalRet != null && s.benchTotalRet != null) ? (s.totalRet - s.benchTotalRet) : null;
+  const aEl = document.getElementById("hd-active"); aEl.textContent = pct(active); aEl.className = "val " + cls(active);
+
+  document.getElementById("bi-cagr").textContent = pct(s.cagr);
+  document.getElementById("bi-cagr").className = "v " + cls(s.cagr);
+
+  // Winners / losers based on trades
+  const trades = RUN.trades || [];
+  const wins = trades.filter(t => t.ret > 0).length;
+  const losses = trades.filter(t => t.ret < 0).length;
+  document.getElementById("bi-wl").innerHTML = `<span class="pos">${wins}</span> / <span class="neg">${losses}</span>`;
+  document.getElementById("bi-mdd").innerHTML = `<span class="neg">${pct(s.maxDD)}</span>`;
+  document.getElementById("bi-mddp").textContent = (s.maxDD_peakD && s.maxDD_troughD)
+    ? `${fmtDate(s.maxDD_peakD)} → ${fmtDate(s.maxDD_troughD)}` : "—";
+
+  // Equity SVG
+  renderEquityChart(RUN.equity);
+}
+
+function renderEquityChart(equity){
+  if (!equity || !equity.length){ document.getElementById("equity-svg").innerHTML = ""; return; }
+  const W = 900, H = 280, padL = 56, padR = 24, padT = 16, padB = 32;
+  const vals = equity.flatMap(p => [p.portValue, p.benchValue]);
+  const maxV = Math.max(...vals), minV = Math.min(...vals);
+  const padPct = 0.05;
+  const yMax = maxV * (1 + padPct);
+  const yMin = Math.min(minV * (1 - padPct), 90);
+  const xs = i => padL + i * (W - padL - padR) / Math.max(equity.length - 1, 1);
+  const ys = v => H - padB - ((v - yMin) / Math.max(yMax - yMin, 1)) * (H - padT - padB);
+  const portPath = "M " + equity.map((p, i) => `${xs(i).toFixed(1)},${ys(p.portValue).toFixed(1)}`).join(" L ");
+  const benchPath = "M " + equity.map((p, i) => `${xs(i).toFixed(1)},${ys(p.benchValue).toFixed(1)}`).join(" L ");
+
+  // y axis: 4 ticks expressed as % gain from 100
+  const ticks = [yMin, yMin + (yMax-yMin)*0.33, yMin + (yMax-yMin)*0.66, yMax];
+  const yLabels = ticks.map(t => `<g>
+    <line x1="${padL}" x2="${W-padR}" y1="${ys(t)}" y2="${ys(t)}" stroke="#30363d" stroke-dasharray="2 3" stroke-width="0.5"/>
+    <text x="${padL-8}" y="${ys(t)+4}" fill="#8b949e" font-size="11" text-anchor="end">${((t/100-1)*100).toFixed(0)}%</text>
+  </g>`).join("");
+
+  // X labels: first, middle, last
+  const idxs = [0, Math.floor(equity.length/3), Math.floor(2*equity.length/3), equity.length-1];
+  const xLabels = idxs.map(i => `<text x="${xs(i)}" y="${H-10}" fill="#8b949e" font-size="11" text-anchor="middle">${fmtDate(equity[i].d)}</text>`).join("");
+
+  const last = equity[equity.length-1];
+  document.getElementById("equity-svg").innerHTML = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+    ${yLabels}
+    <path d="${benchPath}" fill="none" stroke="#f85149" stroke-width="1.5"/>
+    <path d="${portPath}" fill="none" stroke="#58a6ff" stroke-width="2"/>
+    <text x="${W-padR}" y="${ys(last.portValue)-6}" fill="#58a6ff" font-size="11" text-anchor="end">₹${last.portValue.toFixed(0)}</text>
+    <text x="${W-padR}" y="${ys(last.benchValue)-6}" fill="#f85149" font-size="11" text-anchor="end">₹${last.benchValue.toFixed(0)}</text>
+    ${xLabels}
+  </svg>`;
+}
+
+// ============================================================
+//  ENTRY & EXIT tab
+// ============================================================
+const eeState = { page: 1, pageSize: 25, search: "", sortKey: "ret", sortDir: "desc" };
+
+function renderEntryExit(){
+  if (!RUN || !RUN.trades) return;
+  const trades = RUN.trades;
+  const endDate = RUN.summary?.endDate;
+  const active = trades.filter(t => t.active);
+  const exits = trades.filter(t => !t.active);
+  const wins = trades.filter(t => t.ret > 0);
+  const losses = trades.filter(t => t.ret < 0);
+
+  // Stats
+  const avg = trades.length ? trades.reduce((s, t) => s + t.ret, 0) / trades.length : 0;
+  const sortedR = trades.map(t => t.ret).sort((a, b) => a - b);
+  const med = sortedR.length
+    ? (sortedR.length % 2
+        ? sortedR[(sortedR.length - 1)/2]
+        : (sortedR[sortedR.length/2 - 1] + sortedR[sortedR.length/2]) / 2)
+    : 0;
+
+  document.getElementById("ee-avg").textContent = pct(avg);
+  document.getElementById("ee-avg").className = "v " + cls(avg);
+  document.getElementById("ee-median").textContent = pct(med);
+  document.getElementById("ee-median").className = "v " + cls(med);
+  document.getElementById("ee-active").textContent = active.length;
+  document.getElementById("ee-entries").textContent = trades.length;
+  document.getElementById("ee-winners").textContent = wins.length;
+  document.getElementById("ee-exits").textContent = exits.length;
+  document.getElementById("ee-losers").textContent = losses.length;
+
+  const maxW = trades.length ? trades.reduce((a, b) => (a.ret > b.ret ? a : b)) : null;
+  const maxL = trades.length ? trades.reduce((a, b) => (a.ret < b.ret ? a : b)) : null;
+  if (maxW){
+    document.getElementById("ee-maxw").textContent = pct(maxW.ret);
+    document.getElementById("ee-maxw").className = "v pos";
+    document.getElementById("ee-maxw-sub").textContent = maxW.name || maxW.sym;
+  }
+  if (maxL){
+    document.getElementById("ee-maxl").textContent = pct(maxL.ret);
+    document.getElementById("ee-maxl").className = "v neg";
+    document.getElementById("ee-maxl-sub").textContent = maxL.name || maxL.sym;
+  }
+
+  // Sort indicator
+  document.querySelectorAll("#ee-table thead th.sortable").forEach(th => {
+    const k = th.dataset.sort;
+    th.querySelector(".sort-ind").textContent = k === eeState.sortKey ? (eeState.sortDir === "asc" ? "▲" : "▼") : "";
+  });
+
+  renderEntryExitTable(trades, endDate);
+}
+
+function renderEntryExitTable(trades, endDate){
+  const q = eeState.search.toLowerCase();
+  let rows = trades.filter(t => !q || (t.sym && t.sym.toLowerCase().includes(q)) || (t.name && t.name.toLowerCase().includes(q)));
+  rows.sort((a, b) => {
+    let va = a[eeState.sortKey], vb = b[eeState.sortKey];
+    if (va == null) va = -Infinity; if (vb == null) vb = -Infinity;
+    if (typeof va === "string"){ va = va.toLowerCase(); vb = (vb||"").toLowerCase(); return (va < vb ? -1 : va > vb ? 1 : 0) * (eeState.sortDir === "asc" ? 1 : -1); }
+    return (va - vb) * (eeState.sortDir === "asc" ? 1 : -1);
+  });
+
+  const total = rows.length;
+  const pages = Math.max(1, Math.ceil(total / eeState.pageSize));
+  if (eeState.page > pages) eeState.page = pages;
+  const start = (eeState.page - 1) * eeState.pageSize;
+  const slice = rows.slice(start, start + eeState.pageSize);
+
+  document.getElementById("ee-tbody").innerHTML = slice.map(t => {
+    const exitCell = t.active
+      ? `<span class="pill active">Active</span> <span style="color:var(--muted);font-size:11.5px"> (on ${fmtDate(endDate)})</span>`
+      : fmtDate(t.exit_d);
+    return `<tr>
+      <td><strong>${escapeHtml(t.name || t.sym)}</strong></td>
+      <td>${fmtDate(t.entry_d)}</td>
+      <td class="right">${t.entry_px != null ? "₹" + t.entry_px.toFixed(2) : "—"}</td>
+      <td>${exitCell}</td>
+      <td class="right">${t.exit_px != null ? "₹" + t.exit_px.toFixed(2) : "—"}</td>
+      <td class="right ret-cell ${cls(t.ret)}">${pct(t.ret)}</td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="6" class="empty">No trades match the search.</td></tr>`;
+
+  document.getElementById("ee-page-info").textContent = total
+    ? `Showing ${start+1}–${Math.min(start+slice.length, total)} of ${total}`
+    : "0 entries";
+
+  // pager
+  const pager = document.getElementById("ee-pager");
+  const btns = [];
+  btns.push(`<button data-pg="prev" ${eeState.page === 1 ? "disabled" : ""}>‹ Prev</button>`);
+  const visible = new Set([1, pages, eeState.page-1, eeState.page, eeState.page+1]);
+  for (let p = 1; p <= pages; p++){
+    if (visible.has(p)) btns.push(`<span class="pg-num ${p === eeState.page ? "active" : ""}" data-pg="${p}">${p}</span>`);
+    else if (p === 2 || p === pages-1) btns.push(`<span style="padding:0 4px;color:var(--muted)">…</span>`);
+  }
+  btns.push(`<button data-pg="next" ${eeState.page === pages ? "disabled" : ""}>Next ›</button>`);
+  pager.innerHTML = btns.join("");
+  pager.querySelectorAll("[data-pg]").forEach(el => el.addEventListener("click", () => {
+    const v = el.dataset.pg;
+    if (v === "prev") eeState.page = Math.max(1, eeState.page - 1);
+    else if (v === "next") eeState.page = Math.min(pages, eeState.page + 1);
+    else eeState.page = parseInt(v, 10);
+    renderEntryExitTable(trades, endDate);
+  }));
+}
+
+// ============================================================
+//  PERIOD ANALYSIS tab
+// ============================================================
+function renderPeriod(){
+  if (!RUN) return;
+  const periods = RUN.periods || [];
+  if (!periods.length){
+    document.querySelector('[data-panel="period"]').innerHTML = `<div class="empty"><h3>No period data</h3></div>`;
+    return;
+  }
+  const rets = periods.map(p => p.ret);
+  const avgN = periods.reduce((s, p) => s + (p.n || 0), 0) / periods.length;
+  const maxR = Math.max(...rets), minR = Math.min(...rets);
+  const meanR = rets.reduce((s, r) => s + r, 0) / rets.length;
+  const maxIdx = rets.indexOf(maxR), minIdx = rets.indexOf(minR);
+
+  document.getElementById("pa-avgn").textContent = avgN.toFixed(2);
+  document.getElementById("pa-maxret").textContent = pct(maxR);
+  document.getElementById("pa-maxret").className = "v pos";
+  document.getElementById("pa-maxret-sub").textContent = fmtDate(periods[maxIdx].d_end);
+  document.getElementById("pa-mean").textContent = pct(meanR);
+  document.getElementById("pa-mean").className = "v " + cls(meanR);
+  document.getElementById("pa-minret").textContent = pct(minR);
+  document.getElementById("pa-minret").className = "v neg";
+  document.getElementById("pa-minret-sub").textContent = fmtDate(periods[minIdx].d_end);
+
+  // Average holding (months) = avg trade life in months
+  const trades = RUN.trades || [];
+  if (trades.length){
+    const months = trades.map(t => {
+      const a = new Date(t.entry_d + "T00:00:00Z"), b = new Date(t.exit_d + "T00:00:00Z");
+      return (b - a) / (1000 * 60 * 60 * 24 * 30.4375);
+    });
+    const avgM = months.reduce((s, m) => s + m, 0) / months.length;
+    document.getElementById("pa-hold").textContent = avgM.toFixed(2);
+  } else {
+    document.getElementById("pa-hold").textContent = "—";
+  }
+
+  document.getElementById("pa-mdd").textContent = pct(RUN.summary.maxDD);
+  document.getElementById("pa-mdd").className = "v neg";
+  document.getElementById("pa-mdd-sub").textContent = (RUN.summary.maxDD_peakD && RUN.summary.maxDD_troughD)
+    ? `${fmtDate(RUN.summary.maxDD_peakD)} → ${fmtDate(RUN.summary.maxDD_troughD)}` : "";
+
+  // Period bar chart
+  renderPeriodBars(periods);
+
+  // Period table
+  document.getElementById("pa-tbody").innerHTML = periods.map(p => `<tr>
+    <td>${fmtDate(p.d_end)}</td>
+    <td class="right">${p.n}</td>
+    <td class="right ret-cell ${cls(p.ret)}">${pct(p.ret)}</td>
+  </tr>`).join("");
+}
+
+function renderPeriodBars(periods){
+  const W = 900, H = 220, padL = 40, padR = 16, padT = 12, padB = 28;
+  const rets = periods.map(p => p.ret);
+  const maxR = Math.max(...rets, 0), minR = Math.min(...rets, 0);
+  const span = Math.max(maxR - minR, 0.01);
+  const yZero = padT + (maxR / span) * (H - padT - padB);
+  const xs = i => padL + i * (W - padL - padR) / Math.max(periods.length, 1);
+  const bw = Math.max(1, (W - padL - padR) / periods.length - 1);
+  const bars = periods.map((p, i) => {
+    const h = Math.abs(p.ret) / span * (H - padT - padB);
+    const y = p.ret >= 0 ? yZero - h : yZero;
+    return `<rect x="${xs(i)}" y="${y}" width="${bw}" height="${Math.max(h, 0.5)}" fill="${p.ret >= 0 ? '#3fb950' : '#f85149'}" opacity="0.85"/>`;
+  }).join("");
+  // y labels: 0, max, min
+  const yLabels = `
+    <line x1="${padL}" x2="${W-padR}" y1="${yZero}" y2="${yZero}" stroke="#30363d" stroke-width="0.7"/>
+    <text x="${padL-6}" y="${yZero+4}" fill="#8b949e" font-size="11" text-anchor="end">0%</text>
+    <text x="${padL-6}" y="${padT+10}" fill="#8b949e" font-size="11" text-anchor="end">${(maxR*100).toFixed(0)}%</text>
+    <text x="${padL-6}" y="${H-padB-2}" fill="#8b949e" font-size="11" text-anchor="end">${(minR*100).toFixed(0)}%</text>
+  `;
+  // x labels (4 dates)
+  const idxs = [0, Math.floor(periods.length/3), Math.floor(2*periods.length/3), periods.length-1].filter((v, i, a) => a.indexOf(v) === i);
+  const xLabels = idxs.map(i => periods[i]
+    ? `<text x="${xs(i)+bw/2}" y="${H-8}" fill="#8b949e" font-size="11" text-anchor="middle">${fmtDate(periods[i].d_end)}</text>`
+    : "").join("");
+
+  document.getElementById("period-bars-svg").innerHTML = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+    ${yLabels}${bars}${xLabels}
+  </svg>`;
+}
+
+// ============================================================
+//  Tab switching
+// ============================================================
+function switchTab(name){
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.tab === name));
+  document.querySelectorAll(".tab-panel").forEach(p => p.style.display = (p.dataset.panel === name ? "" : "none"));
+  history.replaceState(null, "", location.pathname + location.search + "#" + getRunId() + "&t=" + name);
+}
+
+// ============================================================
+//  CSV export
+// ============================================================
+function downloadCSV(filename, headers, rows){
+  const csv = [headers.join(","), ...rows.map(r => r.map(v => {
+    if (v == null) return "";
+    const s = String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  }).join(","))].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportTrades(){
+  if (!RUN?.trades) return;
+  const headers = ["Symbol", "Name", "Entry Date", "Entry Price", "Exit Date", "Exit Price", "Active", "Return %"];
+  const rows = RUN.trades.map(t => [
+    t.sym, t.name, t.entry_d, t.entry_px?.toFixed(2),
+    t.exit_d, t.exit_px?.toFixed(2), t.active ? "TRUE" : "FALSE",
+    t.ret != null ? (t.ret * 100).toFixed(2) : ""
+  ]);
+  downloadCSV(`backtest-${RUN.id}-trades.csv`, headers, rows);
+}
+
+function exportPeriods(){
+  if (!RUN?.periods) return;
+  const headers = ["Period End", "Stocks", "Return %"];
+  const rows = RUN.periods.map(p => [p.d_end, p.n, (p.ret * 100).toFixed(2)]);
+  downloadCSV(`backtest-${RUN.id}-periods.csv`, headers, rows);
+}
+
+// ============================================================
+//  Boot
+// ============================================================
+(async () => {
+  await loadMetrics();
+  const id = loadRun();
+
+  if (!id){
+    document.getElementById("wrap").innerHTML = `<div class="empty">
+      <h3>No backtest ID in URL.</h3>
+      <p>Open a backtest from the <a href="my-backtests.html">backtest history</a> page.</p></div>`;
+    return;
+  }
+
+  if (!RUN){
+    document.getElementById("wrap").innerHTML = `<div class="empty">
+      <h3>Backtest details not available</h3>
+      <p>This run's detailed data is no longer in your browser's storage (we keep the most recent runs only).</p>
+      <p>Re-run the backtest from the <a href="my-backtests.html">backtest history</a> page to view its details.</p></div>`;
+    return;
+  }
+
+  renderHeader();
+  renderOverview();
+  renderEntryExit();
+  renderPeriod();
+
+  // Tab clicks
+  document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => switchTab(t.dataset.tab)));
+
+  // Header buttons
+  document.getElementById("btn-rerun").addEventListener("click", () => {
+    const name = RUN.name;
+    const rows = RUN.rows || [];
+    const enc = encodeURIComponent(JSON.stringify(rows)) + (name ? "&name=" + encodeURIComponent(name) : "");
+    location.href = "backtest.html#" + enc;
+  });
+  document.getElementById("btn-delete").addEventListener("click", () => {
+    if (!confirm("Delete this backtest run?")) return;
+    const runs = readRuns(); delete runs[String(RUN.id)]; writeRuns(runs);
+    const hist = readHistory().filter(h => String(h.id) !== String(RUN.id));
+    writeHistory(hist);
+    location.href = "my-backtests.html";
+  });
+  document.getElementById("btn-alert").addEventListener("click", () => toast("Alerts not wired yet"));
+
+  // CSV exports
+  document.getElementById("csv-link").addEventListener("click", e => { e.preventDefault(); exportTrades(); });
+  document.getElementById("ee-export").addEventListener("click", exportTrades);
+  document.getElementById("pa-export").addEventListener("click", exportPeriods);
+
+  // Entry & exit table controls
+  document.getElementById("ee-page-size").addEventListener("change", e => {
+    eeState.pageSize = parseInt(e.target.value, 10); eeState.page = 1;
+    renderEntryExitTable(RUN.trades, RUN.summary.endDate);
+  });
+  document.getElementById("ee-search").addEventListener("input", e => {
+    eeState.search = e.target.value; eeState.page = 1;
+    renderEntryExitTable(RUN.trades, RUN.summary.endDate);
+  });
+  document.querySelectorAll("#ee-table thead th.sortable").forEach(th => {
+    th.addEventListener("click", () => {
+      const k = th.dataset.sort;
+      if (eeState.sortKey === k) eeState.sortDir = eeState.sortDir === "asc" ? "desc" : "asc";
+      else { eeState.sortKey = k; eeState.sortDir = (k === "ret" || k.endsWith("_px")) ? "desc" : "asc"; }
+      renderEntryExit();
+    });
+  });
+
+  // Initial tab from hash
+  const m = location.hash.match(/[#&]t=([a-z-]+)/);
+  if (m) switchTab(m[1]);
+})();
+</script>
+</body>
+</html>
