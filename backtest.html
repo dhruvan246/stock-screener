@@ -248,7 +248,7 @@
             <input type="number" id="max-stocks" value="50" min="1" max="500">
           </div>
         </div>
-        <div class="field-hint">Max Weightage Per Stock: equal-weighted</div>
+        <div class="field-hint">Slot-based equal weight: each picked stock = 1/MAX of portfolio. If fewer stocks pass the screen, unfilled slots stay in cash (protects against bear markets).</div>
       </div>
     </div>
   </div>
@@ -447,10 +447,18 @@ function backtest(HIST, rows, opts){
       selected = selected.slice(0, opts.maxStocks);
     }
 
+    // Cash-fill rebalance: MAX Stocks = portfolio slots.
+    // If fewer stocks pass the screen than slots, the unfilled slots stay in
+    // cash (0% return) — this protects the portfolio in bear markets when most
+    // stocks fail the screen, instead of concentrating into the few survivors.
     let periodRet = 0;
-    if (selected.length > 0){
+    const slots = (opts.maxStocks && opts.maxStocks > 0) ? opts.maxStocks : selected.length;
+    const cashSlots = Math.max(0, slots - selected.length);
+    if (selected.length > 0 && slots > 0){
       const sum = selected.reduce((acc, c) => acc + c.ret, 0);
-      periodRet = sum / selected.length - 1;
+      // Each picked stock = 1/slots of portfolio (return = ret_i × 1/slots);
+      // each cash slot = 1/slots × 1.0 (no return). Sum and convert to pct.
+      periodRet = (sum + cashSlots) / slots - 1;
     }
     portValue *= (1 + periodRet);
 
@@ -467,7 +475,8 @@ function backtest(HIST, rows, opts){
 
     equity.push({ d: curD, portValue, benchValue });
     picks.push({
-      d_start: prevD, d_end: curD, n: selected.length, ret: periodRet,
+      d_start: prevD, d_end: curD, n: selected.length, slots, ret: periodRet,
+      cash_pct: slots > 0 ? cashSlots / slots : 0,
       stocks: selected.map(c => ({ sym: c.sym, name: c.name, entryPx: c.entryPx, exitPx: c.exitPx }))
     });
   }
@@ -685,7 +694,7 @@ function saveToHistory(res, rows, opts, name){
         years: res.years, startDate: res.startDate, endDate: res.endDate,
       },
       equity: res.equity,
-      periods: res.picks.map(p => ({ d_start: p.d_start, d_end: p.d_end, n: p.n, ret: p.ret })),
+      periods: res.picks.map(p => ({ d_start: p.d_start, d_end: p.d_end, n: p.n, slots: p.slots, cash_pct: p.cash_pct, ret: p.ret })),
       trades: res.trades,
     };
     const runs = readRuns();
@@ -823,21 +832,4 @@ function renderHeader(){
   });
 
   document.getElementById("btn-alert").addEventListener("click", () => toast("Alerts coming soon"));
-  document.getElementById("btn-backtests").addEventListener("click", () => toast("You're already on Backtests"));
-  document.getElementById("btn-edit").addEventListener("click", () => location.href = "builder.html#" + encodeURIComponent(JSON.stringify(ROWS)));
-  document.getElementById("btn-delete").addEventListener("click", () => {
-    if (!NAME){ toast("Unsaved screen"); return; }
-    if (!confirm(`Delete saved screen "${NAME}"?`)) return;
-    const presets = readPresets(); delete presets[NAME]; writePresets(presets);
-    toast(`Deleted "${NAME}"`);
-    setTimeout(() => location.href = "my-screens.html", 500);
-  });
-  document.getElementById("btn-help").addEventListener("click", () => toast("All metrics work out-of-the-box. See Sort/Order to rank matched stocks; MAX Stocks caps the portfolio."));
-
-  renderHistory();
-})();
-</script>
-</body>
-</html>
-
-V�u�i�b�觶���஋�:��r�+&��
+  document.getElementB
