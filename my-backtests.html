@@ -263,6 +263,7 @@ function renderRows(){
         <div class="small">${h.years ? h.years.toFixed(1) + " yrs" : ""} · ${h.freq === "Q" ? "Quarterly" : "Monthly"}</div>
       </td>
       <td class="center">
+        ${h.id ? `<a href="backtest-details.html#${h.id}" class="row-link-btn" title="View backtest details">📋 Details</a>` : ""}
         <a href="backtest.html#${namedEncoded}" class="row-link-btn" title="Re-run backtest">↻ Re-run</a>
         <button class="icon-btn danger" data-act="delete" title="Delete">🗑</button>
       </td>
@@ -284,13 +285,4 @@ document.querySelectorAll(".nav-group-head").forEach(h => {
 });
 document.getElementById("sort").addEventListener("change", (e) => { sortKey = e.target.value; renderRows(); });
 document.getElementById("clear-all").addEventListener("click", () => {
-  if (!confirm("Clear all backtest history? This cannot be undone.")) return;
-  writeHistory([]);
-  toast("Cleared");
-  renderRows();
-});
-
-loadMetrics().then(renderRows);
-</script>
-</body>
-</html>
+  if (!confirm("Clear all backtest history? This cannot be undon
