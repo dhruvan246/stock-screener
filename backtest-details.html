@@ -335,7 +335,8 @@
   <div class="tab-panel" data-panel="period" style="display:none">
 
     <div class="stats-grid">
-      <div class="stat"><div class="l">Average Stock Count per Period</div><div class="v" id="pa-avgn">—</div></div>
+      <div class="stat"><div class="l">Average Stock Count per Period</div><div class="v" id="pa-avgn">—</div><div class="sub" id="pa-avgn-sub"></div></div>
+      <div class="stat"><div class="l">Avg Cash Allocation</div><div class="v" id="pa-cash">—</div><div class="sub">Unfilled slots</div></div>
       <div class="stat"><div class="l">Max Period Return</div><div class="v" id="pa-maxret">—</div><div class="sub" id="pa-maxret-sub"></div></div>
       <div class="stat"><div class="l">Mean Period Return</div><div class="v" id="pa-mean">—</div></div>
       <div class="stat"><div class="l">Min Period Return</div><div class="v" id="pa-minret">—</div><div class="sub" id="pa-minret-sub"></div></div>
@@ -361,6 +362,7 @@
             <tr>
               <th>Period End</th>
               <th class="right">Stocks</th>
+              <th class="right">Cash %</th>
               <th class="right">Return (%)</th>
             </tr>
           </thead>
@@ -691,11 +693,17 @@ function renderPeriod(){
   }
   const rets = periods.map(p => p.ret);
   const avgN = periods.reduce((s, p) => s + (p.n || 0), 0) / periods.length;
+  const avgSlots = periods.reduce((s, p) => s + (p.slots || p.n || 0), 0) / periods.length;
+  const avgCashPct = periods.reduce((s, p) => s + (p.cash_pct || 0), 0) / periods.length;
   const maxR = Math.max(...rets), minR = Math.min(...rets);
   const meanR = rets.reduce((s, r) => s + r, 0) / rets.length;
   const maxIdx = rets.indexOf(maxR), minIdx = rets.indexOf(minR);
 
   document.getElementById("pa-avgn").textContent = avgN.toFixed(2);
+  const avgNSub = document.getElementById("pa-avgn-sub");
+  if (avgNSub) avgNSub.textContent = avgSlots ? `of ${avgSlots.toFixed(1)} slots` : "";
+  const cashEl = document.getElementById("pa-cash");
+  if (cashEl){ cashEl.textContent = pct(avgCashPct, 1); }
   document.getElementById("pa-maxret").textContent = pct(maxR);
   document.getElementById("pa-maxret").className = "v pos";
   document.getElementById("pa-maxret-sub").textContent = fmtDate(periods[maxIdx].d_end);
@@ -727,11 +735,16 @@ function renderPeriod(){
   renderPeriodBars(periods);
 
   // Period table
-  document.getElementById("pa-tbody").innerHTML = periods.map(p => `<tr>
-    <td>${fmtDate(p.d_end)}</td>
-    <td class="right">${p.n}</td>
-    <td class="right ret-cell ${cls(p.ret)}">${pct(p.ret)}</td>
-  </tr>`).join("");
+  document.getElementById("pa-tbody").innerHTML = periods.map(p => {
+    const cashPct = p.cash_pct != null ? p.cash_pct : 0;
+    const slots = p.slots || p.n || 0;
+    return `<tr>
+      <td>${fmtDate(p.d_end)}</td>
+      <td class="right">${p.n}${slots && slots !== p.n ? ` <span style="color:var(--muted)">/ ${slots}</span>` : ""}</td>
+      <td class="right" style="color:${cashPct > 0 ? 'var(--warn)' : 'var(--muted)'}">${pct(cashPct, 1)}</td>
+      <td class="right ret-cell ${cls(p.ret)}">${pct(p.ret)}</td>
+    </tr>`;
+  }).join("");
 }
 
 function renderPeriodBars(periods){
@@ -802,8 +815,12 @@ function exportTrades(){
 
 function exportPeriods(){
   if (!RUN?.periods) return;
-  const headers = ["Period End", "Stocks", "Return %"];
-  const rows = RUN.periods.map(p => [p.d_end, p.n, (p.ret * 100).toFixed(2)]);
+  const headers = ["Period End", "Stocks", "Slots", "Cash %", "Return %"];
+  const rows = RUN.periods.map(p => [
+    p.d_end, p.n, p.slots || p.n,
+    ((p.cash_pct || 0) * 100).toFixed(2),
+    (p.ret * 100).toFixed(2)
+  ]);
   downloadCSV(`backtest-${RUN.id}-periods.csv`, headers, rows);
 }
 
@@ -855,31 +872,4 @@ function exportPeriods(){
 
   // CSV exports
   document.getElementById("csv-link").addEventListener("click", e => { e.preventDefault(); exportTrades(); });
-  document.getElementById("ee-export").addEventListener("click", exportTrades);
-  document.getElementById("pa-export").addEventListener("click", exportPeriods);
-
-  // Entry & exit table controls
-  document.getElementById("ee-page-size").addEventListener("change", e => {
-    eeState.pageSize = parseInt(e.target.value, 10); eeState.page = 1;
-    renderEntryExitTable(RUN.trades, RUN.summary.endDate);
-  });
-  document.getElementById("ee-search").addEventListener("input", e => {
-    eeState.search = e.target.value; eeState.page = 1;
-    renderEntryExitTable(RUN.trades, RUN.summary.endDate);
-  });
-  document.querySelectorAll("#ee-table thead th.sortable").forEach(th => {
-    th.addEventListener("click", () => {
-      const k = th.dataset.sort;
-      if (eeState.sortKey === k) eeState.sortDir = eeState.sortDir === "asc" ? "desc" : "asc";
-      else { eeState.sortKey = k; eeState.sortDir = (k === "ret" || k.endsWith("_px")) ? "desc" : "asc"; }
-      renderEntryExit();
-    });
-  });
-
-  // Initial tab from hash
-  const m = location.hash.match(/[#&]t=([a-z-]+)/);
-  if (m) switchTab(m[1]);
-})();
-</script>
-</body>
-</html>
+  document.getElementById("ee-export").addEventListe
