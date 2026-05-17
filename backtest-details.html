@@ -872,4 +872,31 @@ function exportPeriods(){
 
   // CSV exports
   document.getElementById("csv-link").addEventListener("click", e => { e.preventDefault(); exportTrades(); });
-  document.getElementById("ee-export").addEventListe
+  document.getElementById("ee-export").addEventListener("click", exportTrades);
+  document.getElementById("pa-export").addEventListener("click", exportPeriods);
+
+  // Entry & exit table controls
+  document.getElementById("ee-page-size").addEventListener("change", e => {
+    eeState.pageSize = parseInt(e.target.value, 10); eeState.page = 1;
+    renderEntryExitTable(RUN.trades, RUN.summary.endDate);
+  });
+  document.getElementById("ee-search").addEventListener("input", e => {
+    eeState.search = e.target.value; eeState.page = 1;
+    renderEntryExitTable(RUN.trades, RUN.summary.endDate);
+  });
+  document.querySelectorAll("#ee-table thead th.sortable").forEach(th => {
+    th.addEventListener("click", () => {
+      const k = th.dataset.sort;
+      if (eeState.sortKey === k) eeState.sortDir = eeState.sortDir === "asc" ? "desc" : "asc";
+      else { eeState.sortKey = k; eeState.sortDir = (k === "ret" || k.endsWith("_px")) ? "desc" : "asc"; }
+      renderEntryExit();
+    });
+  });
+
+  // Initial tab from hash
+  const m = location.hash.match(/[#&]t=([a-z-]+)/);
+  if (m) switchTab(m[1]);
+})();
+</script>
+</body>
+</html>
