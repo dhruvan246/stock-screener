@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My Backtests · Stock Screener</title>
+<style>
+  :root{
+    --bg:#0f1419; --card:#1a212b; --card-2:#161c25; --text:#e6edf3; --muted:#8b949e;
+    --accent:#3fb950; --accent-2:#2ea043; --warn:#d29922; --danger:#f85149;
+    --row-hover:#222b36; --border:#30363d; --link:#58a6ff;
+    --chip-bg:#22272e; --chip-fg:#adbac7;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Roboto,-apple-system,Segoe UI,sans-serif;
+       background:var(--bg);color:var(--text);line-height:1.5;font-size:14px}
+  a{color:var(--link);text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  .topnav{display:flex;align-items:center;gap:18px;padding:14px 24px;
+          border-bottom:1px solid var(--border);background:var(--card-2)}
+  .topnav .brand{font-weight:600;font-size:16px;color:var(--text);margin-right:8px}
+  .topnav a{color:var(--muted);font-size:14px}
+  .topnav a.active{color:var(--text);font-weight:600}
+  .topnav a:hover{color:var(--text);text-decoration:none}
+
+  .layout{display:grid;grid-template-columns:260px 1fr;gap:0;min-height:calc(100vh - 53px)}
+  .sidebar{border-right:1px solid var(--border);padding:18px 12px;background:var(--card-2)}
+  .main{padding:18px 24px}
+
+  .nav-group{margin-bottom:10px}
+  .nav-group-head{display:flex;align-items:center;justify-content:space-between;gap:6px;
+                  padding:8px 10px;font-size:13px;color:var(--text);cursor:pointer;
+                  text-transform:none;font-weight:600}
+  .nav-group-head .chev{font-size:11px;color:var(--muted);transition:transform .15s}
+  .nav-group.collapsed .chev{transform:rotate(-90deg)}
+  .nav-group.collapsed .nav-items{display:none}
+  .nav-items{display:flex;flex-direction:column;padding:0 4px 4px}
+  .nav-items a{display:flex;align-items:center;justify-content:space-between;
+               padding:7px 12px;font-size:13px;color:var(--muted);border-radius:6px;
+               margin-bottom:1px}
+  .nav-items a:hover{background:var(--row-hover);color:var(--text);text-decoration:none}
+  .nav-items a.active{background:var(--card);color:var(--text);font-weight:500;
+                      border-left:3px solid var(--accent);padding-left:9px}
+
+  .toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;
+           margin-bottom:14px;flex-wrap:wrap}
+  .toolbar h1{margin:0;font-size:22px}
+  .toolbar .meta{color:var(--muted);font-size:13px}
+  .toolbar .actions{display:flex;gap:8px}
+  .toolbar select,.toolbar button{padding:7px 12px;font:inherit;color:var(--text);
+                   background:var(--card);border:1px solid var(--border);
+                   border-radius:6px;font-size:13px;cursor:pointer}
+
+  .table-wrap{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  thead th{padding:12px 14px;text-align:left;color:var(--muted);font-weight:600;
+           font-size:11px;text-transform:uppercase;letter-spacing:.05em;
+           background:var(--card-2);border-bottom:1px solid var(--border);white-space:nowrap}
+  thead th.right{text-align:right}
+  thead th.center{text-align:center}
+  tbody td{padding:14px;border-bottom:1px solid var(--border);vertical-align:top}
+  tbody tr:last-child td{border-bottom:0}
+  tbody tr:hover{background:var(--row-hover)}
+  tbody td.right{text-align:right}
+  tbody td.center{text-align:center}
+
+  .name-cell{font-weight:600;font-size:14px}
+  .query-cell{color:var(--muted);font-size:12px;font-family:ui-monospace,Menlo,Consolas,monospace;
+              max-width:340px;display:block;background:var(--card-2);padding:4px 8px;border-radius:4px;margin-top:4px}
+  .ret{font-size:18px;font-weight:600}
+  .ret.pos{color:var(--accent)}
+  .ret.neg{color:var(--danger)}
+  .small{font-size:11px;color:var(--muted)}
+
+  .icon-btn{width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;
+            background:transparent;border:1px solid var(--border);border-radius:6px;cursor:pointer;
+            color:var(--muted);font-size:14px;transition:.1s;padding:0}
+  .icon-btn:hover{background:var(--row-hover);color:var(--text)}
+  .icon-btn.danger:hover{color:var(--danger);border-color:var(--danger)}
+  .row-link-btn{padding:5px 10px;font-size:12px;background:var(--card-2);
+                border:1px solid var(--border);border-radius:5px;color:var(--text);
+                cursor:pointer;text-decoration:none;display:inline-block}
+  .row-link-btn:hover{background:var(--row-hover);text-decoration:none}
+
+  .empty-state{padding:48px;text-align:center;color:var(--muted)}
+  .empty-state h3{color:var(--text);font-size:18px;margin:0 0 8px}
+  .empty-state a{color:var(--link)}
+
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+         background:var(--card);border:1px solid var(--border);color:var(--text);
+         padding:10px 16px;border-radius:8px;font-size:13px;
+         box-shadow:0 4px 16px rgba(0,0,0,.4);
+         opacity:0;pointer-events:none;transition:opacity .2s;z-index:99}
+  .toast.show{opacity:1}
+
+  @media (max-width: 880px){
+    .layout{grid-template-columns:1fr}
+    .sidebar{border-right:0;border-bottom:1px solid var(--border)}
+  }
+</style>
+</head>
+<body>
+
+<div class="topnav">
+  <span class="brand">📊 Stock Screener</span>
+  <a href="builder.html">Builder</a>
+  <a href="my-screens.html">My Screens</a>
+  <a href="my-backtests.html" class="active">My Backtests</a>
+  <span style="flex:1"></span>
+  <a href="https://github.com/dhruvan246/stock-screener" target="_blank">code ↗</a>
+</div>
+
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="nav-group">
+      <div class="nav-group-head" data-toggle="my">
+        <span>📁 My Screeners</span>
+        <span class="chev">▼</span>
+      </div>
+      <div class="nav-items">
+        <a href="my-screens.html">My Stock Screeners</a>
+        <a href="my-backtests.html" class="active">My Backtests</a>
+      </div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-head" data-toggle="builder">
+        <span>🛠 Builder</span>
+        <span class="chev">▼</span>
+      </div>
+      <div class="nav-items">
+        <a href="builder.html">New Screen</a>
+        <a href="index.html">Snapshot view</a>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <div class="toolbar">
+      <div>
+        <h1>My Backtests</h1>
+        <div class="meta" id="dataset-info">Backtests you've run, saved locally to this browser.</div>
+      </div>
+      <div class="actions">
+        <select id="sort">
+          <option value="recent">⏱ Most recent</option>
+          <option value="cagr">🏆 Best CAGR</option>
+          <option value="name">A → Z</option>
+        </select>
+        <button id="clear-all" style="border-color:var(--danger);color:var(--danger)">Clear all</button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Query</th>
+            <th class="right">Cumulative Return</th>
+            <th class="right">CAGR</th>
+            <th class="right">Benchmark CAGR</th>
+            <th>Period</th>
+            <th class="center">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const BACKTEST_HISTORY_KEY = "backtest_history_v1";
+
+function toast(msg, ms=1600){
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(()=>el.classList.remove("show"), ms);
+}
+
+function readHistory(){
+  try { return JSON.parse(localStorage.getItem(BACKTEST_HISTORY_KEY) || "[]") || []; }
+  catch { return []; }
+}
+function writeHistory(h){
+  localStorage.setItem(BACKTEST_HISTORY_KEY, JSON.stringify(h));
+}
+
+let METRIC_LABELS = {};
+async function loadMetrics(){
+  try {
+    const r = await fetch("dataset.json", {cache:"no-store"});
+    if (!r.ok) return;
+    const ds = await r.json();
+    (ds.metrics || []).forEach(m => { METRIC_LABELS[m.key] = m.label + (m.unit ? " ("+m.unit+")" : ""); });
+  } catch {}
+}
+function metricLabel(key){ return METRIC_LABELS[key] || key; }
+
+function makeQueryText(rows, max=120){
+  if (!rows) return "";
+  const parts = rows.map((r, i) => {
+    const join = i === 0 ? "" : ` ${r.join||"AND"} `;
+    return `${join}${metricLabel(r.metric)} ${r.op} ${r.value}`;
+  }).join("");
+  return parts.length > max ? parts.slice(0, max).trim() + "…" : parts;
+}
+
+function pct(v, dp=2){ return v == null ? "—" : (v * 100).toFixed(dp) + "%"; }
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+let sortKey = "recent";
+function renderRows(){
+  const history = readHistory();
+  if (history.length === 0){
+    document.getElementById("tbody").innerHTML = `<tr><td colspan="7"><div class="empty-state">
+      <h3>No backtests yet</h3>
+      <p>Run a backtest from the <a href="my-screens.html">My Screens</a> page or <a href="builder.html">Builder</a> — your results will appear here.</p>
+    </div></td></tr>`;
+    return;
+  }
+
+  const sorted = [...history];
+  if (sortKey === "cagr") sorted.sort((a, b) => (b.cagr ?? -9e9) - (a.cagr ?? -9e9));
+  else if (sortKey === "name") sorted.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+  else sorted.sort((a, b) => (b.ts || 0) - (a.ts || 0));
+
+  document.getElementById("tbody").innerHTML = sorted.map((h, idx) => {
+    const encoded = encodeURIComponent(JSON.stringify(h.rows));
+    const namedEncoded = encoded + (h.name ? "&name=" + encodeURIComponent(h.name) : "");
+    return `<tr data-id="${h.id || idx}">
+      <td>
+        <div class="name-cell">${escapeHtml(h.name || "(unnamed)")}</div>
+        <div class="small">Run ${h.ts ? new Date(h.ts).toLocaleString() : "—"}</div>
+      </td>
+      <td>
+        <span class="query-cell">${escapeHtml(makeQueryText(h.rows))}</span>
+      </td>
+      <td class="right">
+        <div class="ret ${h.totalRet >= 0 ? 'pos' : 'neg'}">${pct(h.totalRet)}</div>
+        <div class="small">Portfolio</div>
+      </td>
+      <td class="right">
+        <div class="ret ${h.cagr >= 0 ? 'pos' : 'neg'}">${pct(h.cagr)}</div>
+        <div class="small">Portfolio</div>
+      </td>
+      <td class="right">
+        <div style="font-weight:600">${pct(h.benchCagr)}</div>
+        <div class="small">Nifty 500 avg</div>
+      </td>
+      <td>
+        ${h.startDate || "—"} → ${h.endDate || "—"}
+        <div class="small">${h.years ? h.years.toFixed(1) + " yrs" : ""} · ${h.freq === "Q" ? "Quarterly" : "Monthly"}</div>
+      </td>
+      <td class="center">
+        <a href="backtest.html#${namedEncoded}" class="row-link-btn" title="Re-run backtest">↻ Re-run</a>
+        <button class="icon-btn danger" data-act="delete" title="Delete">🗑</button>
+      </td>
+    </tr>`;
+  }).join("");
+
+  document.querySelectorAll('[data-act="delete"]').forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.closest("tr").dataset.id;
+      const h = readHistory();
+      const idx = h.findIndex(x => String(x.id) === String(id));
+      if (idx >= 0){ h.splice(idx, 1); writeHistory(h); toast("Deleted"); renderRows(); }
+    });
+  });
+}
+
+document.querySelectorAll(".nav-group-head").forEach(h => {
+  h.addEventListener("click", () => h.parentElement.classList.toggle("collapsed"));
+});
+document.getElementById("sort").addEventListener("change", (e) => { sortKey = e.target.value; renderRows(); });
+document.getElementById("clear-all").addEventListener("click", () => {
+  if (!confirm("Clear all backtest history? This cannot be undone.")) return;
+  writeHistory([]);
+  toast("Cleared");
+  renderRows();
+});
+
+loadMetrics().then(renderRows);
+</script>
+</body>
+</html>
