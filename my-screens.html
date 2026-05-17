@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My Screeners · Stock Screener</title>
+<style>
+  :root{
+    --bg:#0f1419; --card:#1a212b; --card-2:#161c25; --text:#e6edf3; --muted:#8b949e;
+    --accent:#3fb950; --accent-2:#2ea043; --warn:#d29922; --danger:#f85149;
+    --row-hover:#222b36; --border:#30363d; --link:#58a6ff;
+    --chip-bg:#22272e; --chip-fg:#adbac7;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Roboto,-apple-system,Segoe UI,sans-serif;
+       background:var(--bg);color:var(--text);line-height:1.5;font-size:14px}
+  a{color:var(--link);text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  /* Top nav (consistent with builder.html) */
+  .topnav{display:flex;align-items:center;gap:18px;padding:14px 24px;
+          border-bottom:1px solid var(--border);background:var(--card-2)}
+  .topnav .brand{font-weight:600;font-size:16px;color:var(--text);margin-right:8px}
+  .topnav a{color:var(--muted);font-size:14px}
+  .topnav a.active{color:var(--text);font-weight:600}
+  .topnav a:hover{color:var(--text);text-decoration:none}
+
+  /* Layout */
+  .layout{display:grid;grid-template-columns:260px 1fr;gap:0;min-height:calc(100vh - 53px)}
+  .sidebar{border-right:1px solid var(--border);padding:18px 12px;background:var(--card-2)}
+  .main{padding:18px 24px}
+
+  /* Sidebar groups */
+  .nav-group{margin-bottom:10px}
+  .nav-group-head{display:flex;align-items:center;justify-content:space-between;gap:6px;
+                  padding:8px 10px;font-size:13px;color:var(--text);cursor:pointer;
+                  text-transform:none;font-weight:600}
+  .nav-group-head .chev{font-size:11px;color:var(--muted);transition:transform .15s}
+  .nav-group.collapsed .chev{transform:rotate(-90deg)}
+  .nav-group.collapsed .nav-items{display:none}
+  .nav-items{display:flex;flex-direction:column;padding:0 4px 4px}
+  .nav-items a{display:flex;align-items:center;justify-content:space-between;
+               padding:7px 12px;font-size:13px;color:var(--muted);border-radius:6px;
+               margin-bottom:1px}
+  .nav-items a:hover{background:var(--row-hover);color:var(--text);text-decoration:none}
+  .nav-items a.active{background:var(--card);color:var(--text);font-weight:500;
+                      border-left:3px solid var(--accent);padding-left:9px}
+  .nav-items a .arrow{color:var(--muted);font-size:10px}
+  .nav-items a.active .arrow{color:var(--accent)}
+
+  /* Search bar */
+  .search-row{display:flex;gap:10px;align-items:flex-end;margin-bottom:18px}
+  .search-field{flex:1}
+  .search-field label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
+  .search-field input{width:100%;padding:9px 12px;font:inherit;color:var(--text);
+                       background:var(--card);border:1px solid var(--border);
+                       border-radius:6px;font-size:14px}
+  .search-field input:focus{outline:0;border-color:var(--link)}
+  .search-btn{padding:9px 22px;font-weight:600;background:var(--link);color:#fff;
+              border:1px solid var(--link);border-radius:6px;cursor:pointer;
+              text-transform:uppercase;font-size:12px;letter-spacing:.04em}
+  .search-btn:hover{background:#4493e0}
+
+  /* Toolbar */
+  .toolbar{display:flex;justify-content:flex-end;align-items:center;gap:12px;
+           margin-bottom:14px;flex-wrap:wrap}
+  .toolbar .create-btn{padding:8px 16px;font-weight:600;background:transparent;
+                       color:var(--link);border:1px solid var(--link);
+                       border-radius:6px;cursor:pointer;text-transform:uppercase;
+                       font-size:12px;letter-spacing:.04em}
+  .toolbar .create-btn:hover{background:rgba(88,166,255,.1)}
+  .toolbar .sort-wrap{display:flex;align-items:center;gap:6px}
+  .toolbar .sort-wrap label{font-size:12px;color:var(--muted)}
+  .toolbar select{padding:7px 30px 7px 12px;font:inherit;color:var(--text);
+                   background:var(--card);border:1px solid var(--border);
+                   border-radius:6px;font-size:13px;cursor:pointer;
+                   appearance:none;background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 12 12"><path fill="%238b949e" d="M2 4l4 4 4-4"/></svg>');background-repeat:no-repeat;background-position:right 10px center}
+  .toolbar .cols-btn{width:36px;height:36px;display:flex;align-items:center;
+                     justify-content:center;background:var(--card);border:1px solid var(--border);
+                     border-radius:6px;cursor:pointer;color:var(--muted)}
+  .toolbar .cols-btn:hover{color:var(--text)}
+
+  /* Table */
+  .table-wrap{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  thead th{padding:12px 14px;text-align:left;color:var(--muted);font-weight:600;
+           font-size:11px;text-transform:uppercase;letter-spacing:.05em;
+           background:var(--card-2);border-bottom:1px solid var(--border);white-space:nowrap}
+  thead th.right{text-align:right}
+  thead th.center{text-align:center}
+  tbody td{padding:14px;border-bottom:1px solid var(--border);vertical-align:top}
+  tbody tr:last-child td{border-bottom:0}
+  tbody tr:hover{background:var(--row-hover)}
+  tbody td.right{text-align:right}
+  tbody td.center{text-align:center}
+
+  /* Row content */
+  .screen-cell{display:flex;align-items:flex-start;gap:10px}
+  .screen-icon{width:32px;height:32px;border-radius:50%;background:var(--card-2);
+               display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px}
+  .screen-name{font-weight:600;color:var(--text);font-size:14px;margin-bottom:2px}
+  .screen-meta{font-size:11px;color:var(--muted)}
+  .desc-text{color:var(--text);font-size:13px;margin-bottom:6px}
+  .desc-query{color:var(--muted);font-size:12px;font-style:italic;font-family:ui-monospace,Menlo,Consolas,monospace;
+              background:var(--card-2);padding:4px 8px;border-radius:4px;display:inline-block;max-width:420px}
+
+  /* Parameter chips */
+  .params{display:flex;flex-direction:column;gap:5px;max-width:220px}
+  .chip{display:inline-block;background:var(--chip-bg);color:var(--chip-fg);
+        font-size:11px;padding:4px 8px;border-radius:5px;line-height:1.3;
+        border:1px solid var(--border)}
+
+  /* Stocks count */
+  .stocks-cell{font-size:18px;font-weight:600;color:var(--text)}
+  .stocks-cell.empty{color:var(--muted);font-weight:400}
+
+  /* Actions */
+  .actions{display:flex;gap:6px;align-items:center}
+  .icon-btn{width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;
+            background:transparent;border:1px solid var(--border);border-radius:6px;cursor:pointer;
+            color:var(--muted);font-size:14px;transition:.1s;padding:0}
+  .icon-btn:hover{background:var(--row-hover);color:var(--text)}
+  .icon-btn.danger:hover{color:var(--danger);border-color:var(--danger)}
+  .icon-btn.bell:hover{color:var(--warn)}
+  .row-link-btn{padding:5px 10px;font-size:12px;background:var(--card-2);
+                border:1px solid var(--border);border-radius:5px;color:var(--text);
+                cursor:pointer}
+  .row-link-btn:hover{background:var(--row-hover)}
+  .row-link-btn.primary{background:var(--accent);border-color:var(--accent);color:#0a0d10;font-weight:600}
+  .row-link-btn.primary:hover{background:var(--accent-2)}
+
+  /* Empty state */
+  .empty-state{padding:48px;text-align:center;color:var(--muted)}
+  .empty-state h3{color:var(--text);font-size:18px;margin:0 0 8px}
+  .empty-state a{color:var(--link)}
+
+  /* Toast */
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+         background:var(--card);border:1px solid var(--border);color:var(--text);
+         padding:10px 16px;border-radius:8px;font-size:13px;
+         box-shadow:0 4px 16px rgba(0,0,0,.4);
+         opacity:0;pointer-events:none;transition:opacity .2s;z-index:99}
+  .toast.show{opacity:1}
+
+  /* Responsive */
+  @media (max-width: 880px){
+    .layout{grid-template-columns:1fr}
+    .sidebar{border-right:0;border-bottom:1px solid var(--border)}
+    .desc-query{max-width:280px;overflow-x:auto}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ TOP NAV ============ -->
+<div class="topnav">
+  <span class="brand">📊 Stock Screener</span>
+  <a href="builder.html">Builder</a>
+  <a href="my-screens.html" class="active">My Screens</a>
+  <a href="my-backtests.html">My Backtests</a>
+  <span style="flex:1"></span>
+  <a href="https://github.com/dhruvan246/stock-screener" target="_blank">code ↗</a>
+</div>
+
+<!-- ============ LAYOUT ============ -->
+<div class="layout">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <div class="nav-group">
+      <div class="nav-group-head" data-toggle="my">
+        <span>📁 My Screeners</span>
+        <span class="chev">▼</span>
+      </div>
+      <div class="nav-items">
+        <a href="my-screens.html" class="active">My Stock Screeners <span class="arrow">›</span></a>
+        <a href="my-backtests.html">My Backtests</a>
+      </div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-head" data-toggle="builder">
+        <span>🛠 Builder</span>
+        <span class="chev">▼</span>
+      </div>
+      <div class="nav-items">
+        <a href="builder.html">New Screen</a>
+        <a href="index.html">Snapshot view</a>
+      </div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-head" data-toggle="metrics">
+        <span>📈 Metrics</span>
+        <span class="chev">▼</span>
+      </div>
+      <div class="nav-items" id="metric-list">
+        <a href="#">Loading…</a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main class="main">
+
+    <!-- Search -->
+    <div class="search-row">
+      <div class="search-field">
+        <label for="search">Search Screener</label>
+        <input id="search" type="text" placeholder="Search Screener (Name / Description / Metric)">
+      </div>
+      <button class="search-btn" id="search-btn">Search</button>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <a href="builder.html" class="create-btn">＋ Create New Screener</a>
+      <div class="sort-wrap">
+        <label for="sort">Sort By</label>
+        <select id="sort">
+          <option value="updated">⏱ Updated Latest</option>
+          <option value="name">A → Z (Name)</option>
+          <option value="created">Newest Created</option>
+        </select>
+      </div>
+      <button class="cols-btn" id="cols-btn" title="Columns">⚙</button>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Screener Name</th>
+            <th>Description</th>
+            <th>Parameters</th>
+            <th class="right">#Stocks</th>
+            <th class="center">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <p style="margin-top:18px;color:var(--muted);font-size:12px">
+      Saved screens live in this browser's localStorage. Open a screen with <b>Load</b> to edit it in the builder, or hit <b>Backtest</b> to simulate it across 10 years of history.
+    </p>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const PRESET_KEY = "screener_presets_v1";
+const LAST_RUN_KEY = "screener_last_run_v1";  // {presetName: {count, ts}}
+
+function toast(msg, ms=1600){
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(()=>el.classList.remove("show"), ms);
+}
+
+function readPresets(){
+  try { return JSON.parse(localStorage.getItem(PRESET_KEY) || "{}") || {}; }
+  catch { return {}; }
+}
+function writePresets(p){ localStorage.setItem(PRESET_KEY, JSON.stringify(p)); }
+function readLastRuns(){
+  try { return JSON.parse(localStorage.getItem(LAST_RUN_KEY) || "{}") || {}; }
+  catch { return {}; }
+}
+
+// Mapping metric key → friendly name, so we render readable chips like Trendlyne
+let METRIC_LABELS = {};
+async function loadMetrics(){
+  try {
+    const r = await fetch("dataset.json", {cache:"no-store"});
+    if (!r.ok) return;
+    const ds = await r.json();
+    (ds.metrics || []).forEach(m => { METRIC_LABELS[m.key] = m.label + (m.unit ? " ("+m.unit+")" : ""); });
+    // Populate metrics nav
+    const host = document.getElementById("metric-list");
+    if (host){
+      const groups = {};
+      (ds.metrics || []).forEach(m => (groups[m.group] = groups[m.group] || []).push(m));
+      host.innerHTML = Object.entries(groups).map(([g, list]) =>
+        `<a href="builder.html"><span style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em">${g}</span></a>` +
+        list.map(m => `<a href="builder.html#${encodeURIComponent(JSON.stringify([{metric:m.key,op:">",value:"0",join:"AND"}]))}" title="${m.label}">${m.label}</a>`).join("")
+      ).join("");
+    }
+  } catch {}
+}
+
+function metricLabel(key){ return METRIC_LABELS[key] || key; }
+function opSymbol(op){ return op; }
+
+function makeQueryText(rows, max=120){
+  const parts = rows.map((r, i) => {
+    const join = i === 0 ? "" : ` ${r.join||"AND"} `;
+    return `${join}${metricLabel(r.metric)} ${r.op} ${r.value}`;
+  }).join("");
+  return parts.length > max ? parts.slice(0, max).trim() + "…" : parts;
+}
+
+function makeDescription(rows){
+  // Generate a sentence like Trendlyne: "This screener uses % Distance from 52week low, ..."
+  const labels = [...new Set(rows.map(r => metricLabel(r.metric)))];
+  return "This screener uses " + labels.slice(0, 3).join(", ") + (labels.length > 3 ? `, +${labels.length - 3} more` : "") + ".";
+}
+
+// Render table rows
+let sortKey = "updated";
+function renderRows(){
+  const presets = readPresets();
+  const lastRuns = readLastRuns();
+  const names = Object.keys(presets);
+
+  // Filter by search
+  const q = (document.getElementById("search").value || "").toLowerCase();
+  const matchesSearch = (name) => {
+    if (!q) return true;
+    if (name.toLowerCase().includes(q)) return true;
+    const rs = presets[name].rows || [];
+    return rs.some(r => metricLabel(r.metric).toLowerCase().includes(q));
+  };
+  const filtered = names.filter(matchesSearch);
+
+  // Sort
+  filtered.sort((a, b) => {
+    if (sortKey === "name") return a.localeCompare(b);
+    const pa = presets[a], pb = presets[b];
+    const ka = pa.savedAt || 0, kb = pb.savedAt || 0;
+    return kb - ka;  // newest first for updated/created
+  });
+
+  const tbody = document.getElementById("tbody");
+  if (filtered.length === 0){
+    tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">
+      <h3>${names.length === 0 ? "No saved screens yet" : "No screens match your search"}</h3>
+      <p>${names.length === 0 ? `<a href="builder.html">Create your first screen →</a>` : `Try a different keyword`}</p>
+    </div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(name => {
+    const p = presets[name];
+    const rows = p.rows || [];
+    const used = [...new Set(rows.map(r => r.metric))];
+    const chips = used.map(k => `<span class="chip">${metricLabel(k)}</span>`).join("");
+    const lastRun = lastRuns[name];
+    const stocksCell = lastRun
+      ? `<div class="stocks-cell">${lastRun.count}</div>`
+      : `<div class="stocks-cell empty">—</div>`;
+    const updatedDate = p.savedAt ? new Date(p.savedAt).toLocaleDateString() : "—";
+    const encoded = encodeURIComponent(JSON.stringify(rows));
+    const namedEncoded = encoded + "&name=" + encodeURIComponent(name);
+
+    return `<tr data-name="${name.replace(/"/g, '&quot;')}">
+      <td>
+        <div class="screen-cell">
+          <div class="screen-icon">📊</div>
+          <div>
+            <div class="screen-name">${escapeHtml(name)}</div>
+            <div class="screen-meta">Updated ${updatedDate} · ${rows.length} rule${rows.length===1?"":"s"}</div>
+          </div>
+        </div>
+      </td>
+      <td>
+        <div class="desc-text">${escapeHtml(makeDescription(rows))}</div>
+        <div class="desc-query">${escapeHtml(makeQueryText(rows))}</div>
+      </td>
+      <td><div class="params">${chips}</div></td>
+      <td class="right">${stocksCell}</td>
+      <td class="center">
+        <div class="actions">
+          <a href="builder.html#${encoded}" class="row-link-btn" title="Load in builder">Load</a>
+          <a href="backtest.html#${namedEncoded}" class="row-link-btn primary" title="Backtest this screen">📈</a>
+          <button class="icon-btn bell" data-act="alert" title="Set alert (coming soon)">🔔</button>
+          <button class="icon-btn danger" data-act="delete" title="Delete screen">🗑</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join("");
+
+  // Wire delete + alert buttons
+  tbody.querySelectorAll('[data-act="delete"]').forEach(btn => {
+    btn.addEventListener("click", () => {
+      const name = btn.closest("tr").dataset.name;
+      if (!confirm(`Delete saved screen "${name}"?`)) return;
+      const presets = readPresets();
+      delete presets[name];
+      writePresets(presets);
+      toast(`Deleted "${name}"`);
+      renderRows();
+    });
+  });
+  tbody.querySelectorAll('[data-act="alert"]').forEach(btn => {
+    btn.addEventListener("click", () => toast("Alerts coming soon"));
+  });
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// Sidebar collapse toggle
+document.querySelectorAll(".nav-group-head").forEach(h => {
+  h.addEventListener("click", () => h.parentElement.classList.toggle("collapsed"));
+});
+
+// Search / sort
+document.getElementById("search").addEventListener("input", renderRows);
+document.getElementById("search-btn").addEventListener("click", renderRows);
+document.getElementById("sort").addEventListener("change", (e) => { sortKey = e.target.value; renderRows(); });
+document.getElementById("cols-btn").addEventListener("click", () => toast("Column customisation coming soon"));
+
+// Boot
+loadMetrics().then(renderRows);
+</script>
+</body>
+</html>
