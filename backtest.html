@@ -7,143 +7,313 @@
 <style>
   :root{
     --bg:#0f1419; --card:#1a212b; --card-2:#161c25; --text:#e6edf3; --muted:#8b949e;
-    --accent:#3fb950; --accent-2:#2ea043; --danger:#f85149;
+    --accent:#3fb950; --accent-2:#2ea043; --warn:#d29922; --danger:#f85149;
     --row-hover:#222b36; --border:#30363d; --link:#58a6ff;
+    --pos:#3fb950; --neg:#f85149;
+    --query-bg:rgba(88,166,255,.08);
   }
   *{box-sizing:border-box}
-  body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-       background:var(--bg);color:var(--text);line-height:1.5}
-  .wrap{max-width:1200px;margin:0 auto;padding:24px 18px 80px}
+  body{margin:0;font-family:Roboto,-apple-system,Segoe UI,sans-serif;
+       background:var(--bg);color:var(--text);line-height:1.5;font-size:14px}
   a{color:var(--link);text-decoration:none}
   a:hover{text-decoration:underline}
 
-  header{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px}
-  h1{margin:0;font-size:24px;letter-spacing:-.01em}
-  .sub{color:var(--muted);font-size:13px}
+  .topnav{display:flex;align-items:center;gap:18px;padding:14px 24px;
+          border-bottom:1px solid var(--border);background:var(--card-2)}
+  .topnav .brand{font-weight:600;font-size:16px;color:var(--text);margin-right:8px}
+  .topnav a{color:var(--muted);font-size:14px}
+  .topnav a.active{color:var(--text);font-weight:600}
 
-  .crumb{color:var(--muted);font-size:13px;margin-bottom:6px}
+  .wrap{max-width:1320px;margin:0 auto;padding:18px 24px 80px}
+
+  /* Sub-tabs */
+  .subnav{display:flex;align-items:center;gap:24px;padding-bottom:10px;border-bottom:1px solid var(--border);
+          margin-bottom:14px;flex-wrap:wrap;font-size:13px}
+  .subnav a{color:var(--muted);padding:4px 2px}
+  .subnav a.active{color:var(--link);border-bottom:2px solid var(--link);padding-bottom:8px;margin-bottom:-11px;font-weight:600}
+
+  .crumb{color:var(--muted);font-size:13px;margin-bottom:8px}
   .crumb a{color:var(--link)}
+  .crumb .sep{margin:0 4px;color:var(--border)}
+
+  .title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:8px}
+  .title-row h1{margin:0;font-size:24px;font-weight:700;color:var(--text)}
+  .desc{color:var(--muted);font-size:13px;margin-bottom:6px}
+  .last-updated{color:var(--muted);font-size:12px;margin-bottom:18px}
+
+  .top-actions{display:flex;gap:6px;align-items:flex-end}
+  .top-action{display:flex;flex-direction:column;align-items:center;font-size:11px;color:var(--muted);gap:3px}
+  .top-action .btn{width:38px;height:38px;border-radius:8px;background:var(--card-2);
+                   border:1px solid var(--border);color:var(--text);font-size:14px;cursor:pointer;
+                   display:flex;align-items:center;justify-content:center}
+  .top-action .btn:hover{background:var(--row-hover)}
+  .top-action.active .btn{background:#fef3c7;border-color:#fde68a;color:#92400e}
+  .top-action.delete .btn:hover{color:var(--danger);border-color:var(--danger)}
 
   /* Form card */
-  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;
-        padding:18px;margin:18px 0}
-  .card .head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-  .card .head .lbl{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+  h2.section-title{margin:24px 0 14px;font-size:22px;font-weight:600;color:var(--text)}
+  .form-card{background:var(--card);border:1px solid var(--border);border-radius:12px;
+             padding:24px;margin-bottom:18px}
+  .form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:32px}
+  @media (max-width:880px){ .form-grid{grid-template-columns:1fr} }
 
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
-  .field{display:flex;flex-direction:column;gap:4px}
-  .field label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
-  select,input,button{font:inherit;color:var(--text);background:var(--card-2);
-                     border:1px solid var(--border);border-radius:6px;padding:7px 10px}
-  select:focus,input:focus{outline:0;border-color:var(--link)}
-  .btn{cursor:pointer;background:var(--card-2);transition:.1s}
-  .btn:hover{background:#1f2630}
-  .btn.primary{background:var(--accent);border-color:var(--accent);color:#0a0d10;font-weight:600}
-  .btn.primary:hover{background:var(--accent-2)}
-  .btn.ghost{background:transparent}
+  .form-col h3{margin:0 0 14px;font-size:15px;font-weight:600;color:var(--text)}
+  .field{margin-bottom:14px;position:relative}
+  .field label{position:absolute;top:-7px;left:10px;background:var(--card);padding:0 4px;
+               font-size:11px;color:var(--muted);font-weight:500}
+  .field select,.field input{width:100%;padding:11px 12px;font:inherit;color:var(--text);
+                              background:var(--card-2);border:1px solid var(--border);
+                              border-radius:6px;font-size:14px;appearance:none;
+                              background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 12 12"><path fill="%238b949e" d="M2 4l4 4 4-4"/></svg>');
+                              background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+  .field input{background-image:none;padding-right:12px}
+  .field select:focus,.field input:focus{outline:0;border-color:var(--link)}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .field-hint{font-size:11px;color:var(--muted);margin-top:6px;padding-left:4px;display:flex;gap:5px;align-items:flex-start}
+  .field-hint::before{content:"💡";font-size:11px;flex-shrink:0}
+  .sort-tag{display:inline-flex;align-items:center;gap:6px;padding:5px 8px 5px 12px;background:rgba(63,185,80,.1);
+            color:var(--accent);border-radius:14px;font-size:12px;margin-top:6px}
+  .sort-tag button{background:none;border:0;color:var(--accent);cursor:pointer;font-size:14px;padding:0;line-height:1}
 
-  .criteria-list{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);
-                 background:var(--card-2);border:1px dashed var(--border);border-radius:8px;padding:10px 14px}
-  .criteria-list code{background:rgba(88,166,255,.1);padding:1px 4px;border-radius:3px;color:var(--link)}
+  .form-footer{display:flex;justify-content:space-between;align-items:center;
+               padding:14px 24px;background:var(--card-2);border:1px solid var(--border);
+               border-radius:12px;margin-bottom:24px}
+  .form-footer .quota{color:var(--link);font-size:13px}
+  .form-footer .actions{display:flex;gap:10px}
+  .form-footer button{padding:9px 22px;font:inherit;font-weight:600;border-radius:6px;cursor:pointer;font-size:13px;border:1px solid}
+  .form-footer .btn-help{background:transparent;color:var(--muted);border-color:var(--border)}
+  .form-footer .btn-help:hover{color:var(--text)}
+  .form-footer .btn-primary{background:var(--link);color:#fff;border-color:var(--link)}
+  .form-footer .btn-primary:hover{background:#4493e0}
 
-  .actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
-
-  /* Result */
+  /* Result + chart */
   .result-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-top:12px}
   .metric{background:var(--card-2);border:1px solid var(--border);border-radius:8px;padding:14px}
   .metric .lbl{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
   .metric .val{font-size:22px;font-weight:600;margin-top:6px}
-  .metric .val.pos{color:var(--accent)}
-  .metric .val.neg{color:var(--danger)}
+  .metric .val.pos{color:var(--pos)}
+  .metric .val.neg{color:var(--neg)}
   .metric .sub{font-size:12px;color:var(--muted);margin-top:2px}
-
   .chart{margin-top:18px;background:var(--card-2);border:1px solid var(--border);border-radius:8px;padding:14px}
   .chart svg{display:block;width:100%;height:auto}
+  .card-block{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:18px}
+  .card-block h3{margin:0 0 14px;font-size:15px;font-weight:600;color:var(--text)}
 
-  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:12px}
-  th,td{padding:6px 10px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
-  th:first-child,td:first-child{text-align:left}
-  thead th{background:var(--card-2);font-size:11px;text-transform:uppercase;
-           letter-spacing:.04em;color:var(--muted)}
-  tbody tr:hover{background:var(--row-hover)}
+  /* Past backtest cards grid */
+  .history-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
+  @media (max-width:1080px){ .history-grid{grid-template-columns:repeat(2,1fr)} }
+  @media (max-width:720px){ .history-grid{grid-template-columns:1fr} }
+
+  .hist-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:0;overflow:hidden}
+  .hist-card .hd{padding:14px 16px;display:flex;justify-content:space-between;align-items:flex-start}
+  .hist-card .nm{font-weight:600;font-size:15px;color:var(--text)}
+  .hist-card .nm-sub{font-size:11px;color:var(--muted);margin-top:2px}
+  .hist-card .hd-icons{display:flex;gap:6px}
+  .hist-card .hd-icons button{width:28px;height:28px;border-radius:6px;background:transparent;
+                              border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:12px;padding:0;
+                              display:flex;align-items:center;justify-content:center}
+  .hist-card .hd-icons button:hover{background:var(--row-hover);color:var(--text)}
+  .hist-card .hd-icons .danger:hover{color:var(--danger);border-color:var(--danger)}
+  .hist-card .qry{padding:10px 16px;background:var(--query-bg);font-size:11px;color:var(--link);
+                  display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+  .hist-card .qry-text{font-family:ui-monospace,Menlo,Consolas,monospace;overflow:hidden;text-overflow:ellipsis;
+                       display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;flex:1;min-width:140px}
+  .hist-card .qry a{font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:.04em;white-space:nowrap}
+  .hist-card .body{padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:14px 18px}
+  .hist-card .body .l{font-size:11px;color:var(--muted)}
+  .hist-card .body .v{font-size:18px;font-weight:600;color:var(--text)}
+  .hist-card .body .v.small{font-size:14px;font-weight:500}
+  .hist-card .footer-band{padding:12px 16px;background:rgba(63,185,80,.07);border-top:1px solid var(--border);
+                          display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .hist-card .footer-band .v.pos{color:var(--pos)}
+  .hist-card .footer-band .v.neg{color:var(--neg)}
 
   .empty{padding:32px;text-align:center;color:var(--muted)}
-  .err{padding:12px;border:1px solid var(--danger);border-radius:8px;color:var(--danger);background:rgba(248,81,73,.05)}
+  .err{padding:12px;border:1px solid var(--danger);border-radius:8px;color:var(--danger);background:rgba(248,81,73,.05);margin-top:14px}
 
-  .footer{margin-top:18px;color:var(--muted);font-size:12px}
-  .footer .caveat{display:block;margin-top:6px}
+  .footer-note{margin-top:18px;color:var(--muted);font-size:12px}
+
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+         background:var(--card);border:1px solid var(--border);color:var(--text);
+         padding:10px 16px;border-radius:8px;font-size:13px;
+         box-shadow:0 4px 16px rgba(0,0,0,.4);
+         opacity:0;pointer-events:none;transition:opacity .2s;z-index:99}
+  .toast.show{opacity:1}
 </style>
 </head>
 <body>
+
+<div class="topnav">
+  <span class="brand">📊 Stock Screener</span>
+  <a href="builder.html">Builder</a>
+  <a href="my-screens.html">My Screens</a>
+  <a href="my-backtests.html" class="active">My Backtests</a>
+  <span style="flex:1"></span>
+  <a href="https://github.com/dhruvan246/stock-screener" target="_blank">code ↗</a>
+</div>
+
 <div class="wrap">
 
-  <div class="crumb"><a href="builder.html">← screener</a> · backtest</div>
-  <header>
+  <!-- Sub-tabs -->
+  <div class="subnav">
+    <a href="#" class="active">Backtests ▾</a>
+    <a href="builder.html">＋ Create New Screener</a>
+    <a href="my-screens.html">My Stock Screeners</a>
+    <a href="my-backtests.html">All My Backtests</a>
+  </div>
+
+  <!-- Breadcrumb -->
+  <div class="crumb">
+    <a href="my-screens.html">My Stock Screeners</a>
+    <span class="sep">/</span>
+    <a id="crumb-screen" href="#">Screen</a>
+    <span class="sep">/</span>
+    <span>Backtests</span>
+  </div>
+
+  <!-- Title + actions -->
+  <div class="title-row">
     <div>
-      <h1 id="screen-title">Backtest</h1>
-      <p class="sub" id="dataset-info">Loading history…</p>
+      <h1 id="title">Screen</h1>
+      <div class="desc" id="desc">Loading…</div>
+      <div class="last-updated" id="last-updated"></div>
     </div>
-  </header>
-
-  <!-- ===== CRITERIA & FORM ===== -->
-  <div class="card">
-    <div class="head">
-      <span class="lbl">Screen criteria</span>
-      <span class="sub" id="criteria-count"></span>
+    <div class="top-actions">
+      <div class="top-action"><button class="btn" id="btn-alert" title="Set alert">🔔</button></div>
+      <div class="top-action active"><button class="btn" id="btn-backtests" title="Backtests">⏱</button></div>
+      <div class="top-action"><button class="btn" id="btn-edit" title="Edit in builder">✏</button></div>
+      <div class="top-action delete"><button class="btn" id="btn-delete" title="Delete screen">🗑</button></div>
     </div>
-    <div class="criteria-list" id="criteria-list">No criteria loaded.</div>
   </div>
 
-  <div class="card">
-    <div class="head"><span class="lbl">Backtest parameters</span></div>
-    <div class="grid">
-      <div class="field">
-        <label for="freq">Rebalance frequency</label>
-        <select id="freq">
-          <option value="M">Monthly</option>
-          <option value="Q">Quarterly</option>
-        </select>
+  <!-- ===== RUN NEW BACKTEST FORM ===== -->
+  <h2 class="section-title">Run a new screener backtest</h2>
+
+  <div class="form-card">
+    <div class="form-grid">
+
+      <div class="form-col">
+        <h3>Choose Date Range and Frequency</h3>
+
+        <div class="field">
+          <label for="freq">Portfolio Review Frequency</label>
+          <select id="freq">
+            <option value="M">Month</option>
+            <option value="Q">Quarter</option>
+          </select>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="start">Start Date</label>
+            <input type="month" id="start">
+          </div>
+          <div class="field">
+            <label for="end">End Date</label>
+            <input type="month" id="end">
+          </div>
+        </div>
+
+        <div class="field-hint" id="date-hint">10 years available from May 2016. Backtest can start from any month end.</div>
       </div>
-      <div class="field">
-        <label for="start">Start date</label>
-        <input type="month" id="start">
+
+      <div class="form-col">
+        <h3>Choose Stock Universe</h3>
+
+        <div class="field">
+          <label for="universe">Select Stock Universe</label>
+          <select id="universe">
+            <option>Nifty 500</option>
+          </select>
+        </div>
+
+        <div class="field-hint">Current universe constituents are applied throughout the backtest.</div>
+
+        <div class="field" style="margin-top:14px">
+          <label for="benchmark">Select Benchmark</label>
+          <select id="benchmark">
+            <option>Nifty 500 (avg)</option>
+          </select>
+        </div>
       </div>
-      <div class="field">
-        <label for="end">End date</label>
-        <input type="month" id="end">
-      </div>
-      <div class="field">
-        <label for="max-stocks">Max stocks (top N by mcap if more match)</label>
-        <input type="number" id="max-stocks" value="50" min="1" max="500">
+
+      <div class="form-col">
+        <h3>Advanced Sorting</h3>
+
+        <div class="field">
+          <label for="sort-by">Sort By</label>
+          <select id="sort-by">
+            <option value="">— choose metric —</option>
+          </select>
+        </div>
+
+        <div class="sort-tag" id="sort-tag" style="display:none">
+          <span id="sort-tag-text"></span>
+          <button id="sort-tag-clear" title="Clear">×</button>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="sort-order">Sorting Order</label>
+            <select id="sort-order">
+              <option value="desc">Prefer High</option>
+              <option value="asc">Prefer Low</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="max-stocks">MAX Stocks</label>
+            <input type="number" id="max-stocks" value="50" min="1" max="500">
+          </div>
+        </div>
+
+        <div class="field-hint">Max Weightage Per Stock: equal-weighted</div>
       </div>
     </div>
+  </div>
+
+  <div class="form-footer">
+    <div class="quota">Unlimited backtests · local engine</div>
     <div class="actions">
-      <button class="btn ghost" id="reset">Reset</button>
-      <button class="btn primary" id="run">Run backtest</button>
+      <button class="btn-help" id="btn-help">Help</button>
+      <button class="btn-primary" id="run">Run Backtest</button>
     </div>
   </div>
 
-  <!-- ===== RESULT ===== -->
+  <!-- ===== RESULT (latest run) ===== -->
   <div id="result"></div>
 
-  <p class="footer">
+  <!-- ===== PAST BACKTEST CARDS for this screen ===== -->
+  <h2 class="section-title" id="history-heading" style="display:none">Past backtests for this screen</h2>
+  <div class="history-grid" id="history-grid"></div>
+
+  <p class="footer-note">
     Backtest assumes equal-weighted portfolio rebalanced at each period, no transaction costs,
     survivorship-biased universe (today's Nifty 500 used throughout).
-    <span class="caveat">Fundamental criteria (P/E, ROE, Net Profit YoY, etc.) use the most recently reported quarter/year available at each backtest date — annual fundamentals fall back where quarterly history doesn't reach.</span>
+    Fundamental criteria use the most recently reported quarter/year available at each backtest date.
   </p>
 
 </div>
 
+<div class="toast" id="toast"></div>
+
 <script>
 // ============================================================
-//  Backtest engine
+//  Engine (same logic as before)
 // ============================================================
 
-// Operators (mirror builder.html)
-const OPS = ["<", "<=", "=", "!=", ">=", ">"];
+const BACKTEST_HISTORY_KEY = "backtest_history_v1";
+const PRESET_KEY = "screener_presets_v1";
+const REPORTING_LAG_DAYS = 45;
 
-// Read screen criteria + (optional) screen name from URL hash.
-// Format same as builder.html share-link, with optional &name=...
+function toast(msg, ms=1700){
+  const el = document.getElementById("toast");
+  el.textContent = msg; el.classList.add("show");
+  clearTimeout(toast._t); toast._t = setTimeout(()=>el.classList.remove("show"), ms);
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function pct(v, dp=2){ return v == null ? "—" : (v * 100).toFixed(dp) + "%"; }
+function cls(v){ return v == null ? "" : (v >= 0 ? "pos" : "neg"); }
+
 function readHashScreen(){
   const h = location.hash.slice(1);
   if (!h) return null;
@@ -159,8 +329,6 @@ function readHashScreen(){
   return rows ? { rows, name } : null;
 }
 
-// Parse "Mar 2024" / "Jun 2025" / "Mar 2026" into the *reporting end* date (last day of month).
-// Returns a Date in UTC.
 function parsePeriod(str){
   if (!str || typeof str !== 'string') return null;
   const m = str.trim().match(/^([A-Za-z]+)\s+(\d{4})$/);
@@ -168,83 +336,52 @@ function parsePeriod(str){
   const months = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
   const mo = months[m[1].slice(0,3)];
   if (mo === undefined) return null;
-  const y = parseInt(m[2], 10);
-  // end of month
-  return new Date(Date.UTC(y, mo + 1, 0));
+  return new Date(Date.UTC(parseInt(m[2], 10), mo + 1, 0));
 }
+function addDays(d, n){ const o = new Date(d); o.setUTCDate(o.getUTCDate() + n); return o; }
 
-// Reporting lag — assume ~45 days after period end for the figures to be public.
-const REPORTING_LAG_DAYS = 45;
-
-function addDays(d, n){
-  const out = new Date(d);
-  out.setUTCDate(out.getUTCDate() + n);
-  return out;
-}
-
-// Compute YoY from a value array given period strings, at "available as of" date asOf.
-// Uses the most recent period whose end + lag <= asOf, paired with the same period a year before.
 function computeYoY(periods, values, asOf){
   if (!periods || !values) return null;
-  // Find the most recent reported period available at asOf.
   let idx = -1;
   for (let i = periods.length - 1; i >= 0; i--){
-    const pe = parsePeriod(periods[i]);
-    if (!pe) continue;
-    if (addDays(pe, REPORTING_LAG_DAYS) <= asOf){
-      idx = i;
-      break;
-    }
+    const pe = parsePeriod(periods[i]); if (!pe) continue;
+    if (addDays(pe, REPORTING_LAG_DAYS) <= asOf){ idx = i; break; }
   }
   if (idx < 0) return null;
-  // For quarterly: pair with index - 4. For annual: pair with index - 1.
-  // We detect by spacing of consecutive periods.
-  // Heuristic: if delta between periods[idx] and periods[idx-1] is ~90d, it's quarterly.
-  const cur = values[idx];
   let pairIdx = idx - 4;
   if (idx >= 1){
-    const dCur = parsePeriod(periods[idx]);
-    const dPrev = parsePeriod(periods[idx - 1]);
+    const dCur = parsePeriod(periods[idx]); const dPrev = parsePeriod(periods[idx - 1]);
     if (dCur && dPrev){
-      const days = (dCur - dPrev) / (1000*60*60*24);
-      if (days > 150) {
-        // Annual cadence — pair with previous index.
-        pairIdx = idx - 1;
-      }
+      const days = (dCur - dPrev) / 86400000;
+      if (days > 150) pairIdx = idx - 1;
     }
   }
   if (pairIdx < 0) return null;
-  const prev = values[pairIdx];
+  const cur = values[idx], prev = values[pairIdx];
   if (cur == null || prev == null || prev === 0) return null;
   return (cur - prev) / Math.abs(prev) * 100;
 }
 
-// Map screener-criterion key to a function (stock, monthlySnap, asOf) -> value
 function metricValue(stock, snap, key, asOf){
   if (key === "ltp")           return snap?.close;
+  if (key === "market_cap_cr") return null;
   if (key === "pct_from_high") return (snap?.close != null && snap?.high_52w) ? (snap.high_52w - snap.close) / snap.high_52w * 100 : null;
   if (key === "pct_from_low")  return (snap?.close != null && snap?.low_52w)  ? (snap.close - snap.low_52w) / snap.low_52w * 100 : null;
-  if (key === "market_cap_cr") return null; // not tracked historically yet
   if (key === "np_yoy_pct"){
-    // Try quarterly first, then annual
-    const q = stock.quarterly;
-    const a = stock.annual;
+    const q = stock.quarterly, a = stock.annual;
     const qy = q ? computeYoY(q.periods, q.net_profit, asOf) : null;
     if (qy != null) return qy;
     return a ? computeYoY(a.periods, a.net_profit, asOf) : null;
   }
   if (key === "rev_yoy_pct"){
-    const q = stock.quarterly;
-    const a = stock.annual;
+    const q = stock.quarterly, a = stock.annual;
     const qy = q ? computeYoY(q.periods, q.sales, asOf) : null;
     if (qy != null) return qy;
     return a ? computeYoY(a.periods, a.sales, asOf) : null;
   }
-  // For other metrics (pe_ttm, roe_pct, etc.) we don't have history — treat as null.
   return null;
 }
 
-// Evaluate left-to-right with AND/OR (same as builder.html)
 function evalRows(stock, snap, rows, asOf){
   const valid = rows.filter(r => r.value !== "" && r.value !== null && !isNaN(parseFloat(r.value)));
   if (valid.length === 0) return false;
@@ -273,27 +410,23 @@ function evalRows(stock, snap, rows, asOf){
   return result;
 }
 
-// Find the monthly snap closest to (but not after) a target date.
 function snapAt(monthly, dateStr){
   if (!monthly || !monthly.length) return null;
   let lo = 0, hi = monthly.length - 1, ans = -1;
   while (lo <= hi){
     const mid = (lo + hi) >> 1;
     if (monthly[mid].d <= dateStr){ ans = mid; lo = mid + 1; }
-    else { hi = mid - 1; }
+    else hi = mid - 1;
   }
   return ans < 0 ? null : monthly[ans];
 }
 
-// Build a list of month-end / quarter-end period boundaries between start and end (inclusive).
 function* periodEnds(start, end, freq){
-  // start, end: YYYY-MM
   const [sy, sm] = start.split('-').map(Number);
   const [ey, em] = end.split('-').map(Number);
   let y = sy, m = sm;
   const step = freq === 'Q' ? 3 : 1;
   while (y < ey || (y === ey && m <= em)){
-    // last day of month
     const d = new Date(Date.UTC(y, m, 0));
     yield d.toISOString().slice(0, 10);
     m += step;
@@ -301,61 +434,53 @@ function* periodEnds(start, end, freq){
   }
 }
 
-// Compute backtest. Returns {equity: [{d, portValue, benchValue}], cagr, totalRet, benchCagr, benchTotalRet, picks: [...]}.
 function backtest(HIST, rows, opts){
   const dates = [...periodEnds(opts.start, opts.end, opts.freq)];
   if (dates.length < 2) throw new Error("Date range too short.");
-
-  // Use NIFTYBEES if available, else fallback to averaging all-universe returns.
-  // (We don't have benchmark prices in HIST.stocks. Use the equal-weight average of *all*
-  // stocks in HIST as a proxy benchmark for "Nifty 500 average".)
-  // Real Nifty 500 ETF data would be cleaner but we don't have it; this is close enough.
-
-  let portValue = 100;
-  let benchValue = 100;
+  let portValue = 100, benchValue = 100;
   const equity = [{ d: dates[0], portValue, benchValue }];
-  const picks = [];  // record stocks held each period
+  const picks = [];
 
   for (let i = 1; i < dates.length; i++){
-    const prevD = dates[i-1];
-    const curD  = dates[i];
-    const asOf  = new Date(prevD + "T00:00:00Z");
+    const prevD = dates[i-1], curD = dates[i];
+    const asOf = new Date(prevD + "T00:00:00Z");
 
-    // Select stocks meeting criteria as of prevD
     const cands = [];
     for (const s of HIST.stocks){
-      const snapPrev = snapAt(s.monthly, prevD);
-      if (!snapPrev) continue;
+      const snapPrev = snapAt(s.monthly, prevD); if (!snapPrev) continue;
       if (evalRows(s, snapPrev, rows, asOf)){
-        const snapCur = snapAt(s.monthly, curD);
-        if (!snapCur) continue;
+        const snapCur = snapAt(s.monthly, curD); if (!snapCur) continue;
         const ret = snapCur.close / snapPrev.close;
         if (!isFinite(ret) || ret <= 0) continue;
-        cands.push({ sym: s.symbol, name: s.name, ret, snapPrev, snapCur });
+        // Sort metric value for ranking
+        const sortVal = opts.sortBy ? metricValue(s, snapPrev, opts.sortBy, asOf) : null;
+        cands.push({ sym: s.symbol, name: s.name, ret, sortVal });
       }
     }
 
-    // Cap to top N (by recent close as a proxy for size, since we don't have mcap history)
+    // Apply Advanced Sorting
     let selected = cands;
-    if (opts.maxStocks && cands.length > opts.maxStocks){
-      // Without market cap history, pick stocks alphabetically (deterministic) — better than random.
-      selected = cands.slice().sort((a, b) => a.sym.localeCompare(b.sym)).slice(0, opts.maxStocks);
+    if (opts.sortBy){
+      const dir = opts.sortOrder === "asc" ? 1 : -1;
+      selected = cands.filter(c => c.sortVal != null).sort((a, b) => (a.sortVal > b.sortVal ? 1 : -1) * dir);
+      if (selected.length === 0) selected = cands; // fall back if no metric values
+    } else {
+      selected = cands.slice().sort((a, b) => a.sym.localeCompare(b.sym));
+    }
+    if (opts.maxStocks && selected.length > opts.maxStocks){
+      selected = selected.slice(0, opts.maxStocks);
     }
 
     let periodRet = 0;
     if (selected.length > 0){
-      // Equal weighted
       const sum = selected.reduce((acc, c) => acc + c.ret, 0);
       periodRet = sum / selected.length - 1;
     }
-    // If no stocks matched, sit in cash (return = 0).
     portValue *= (1 + periodRet);
 
-    // Benchmark: average return of *all* stocks with valid snaps over the same period.
     let bsum = 0, bn = 0;
     for (const s of HIST.stocks){
-      const sp = snapAt(s.monthly, prevD);
-      const sc = snapAt(s.monthly, curD);
+      const sp = snapAt(s.monthly, prevD), sc = snapAt(s.monthly, curD);
       if (!sp || !sc) continue;
       const r = sc.close / sp.close;
       if (!isFinite(r) || r <= 0) continue;
@@ -368,46 +493,38 @@ function backtest(HIST, rows, opts){
     picks.push({ d: prevD, n: selected.length, ret: periodRet, syms: selected.slice(0, 10).map(c => c.sym) });
   }
 
-  // Derived metrics
   const startD = new Date(dates[0] + "T00:00:00Z");
-  const endD   = new Date(dates[dates.length-1] + "T00:00:00Z");
-  const years  = (endD - startD) / (365.25 * 24 * 3600 * 1000);
-
-  const totalRet      = (portValue / 100) - 1;
+  const endD = new Date(dates[dates.length-1] + "T00:00:00Z");
+  const years = (endD - startD) / (365.25 * 24 * 3600 * 1000);
+  const totalRet = (portValue / 100) - 1;
   const benchTotalRet = (benchValue / 100) - 1;
-  const cagr      = years > 0 ? Math.pow(portValue / 100, 1 / years) - 1 : 0;
+  const cagr = years > 0 ? Math.pow(portValue / 100, 1 / years) - 1 : 0;
   const benchCagr = years > 0 ? Math.pow(benchValue / 100, 1 / years) - 1 : 0;
-
-  // Max drawdown
   let peak = equity[0].portValue, maxDD = 0;
   for (const p of equity){
     if (p.portValue > peak) peak = p.portValue;
     const dd = (p.portValue / peak) - 1;
     if (dd < maxDD) maxDD = dd;
   }
-
-  return {
-    equity, picks,
-    totalRet, benchTotalRet,
-    cagr, benchCagr,
-    maxDD, years,
-    startDate: dates[0], endDate: dates[dates.length-1],
-  };
+  return { equity, picks, totalRet, benchTotalRet, cagr, benchCagr, maxDD, years, startDate: dates[0], endDate: dates[dates.length-1] };
 }
 
 // ============================================================
 //  Rendering
 // ============================================================
 
-function pct(v, dp=2){ return (v == null) ? "—" : (v * 100).toFixed(dp) + "%"; }
-function cls(v){ return v == null ? "" : (v >= 0 ? "pos" : "neg"); }
+function metricLabel(key){
+  if (key === "ltp") return "Last Price";
+  if (key === "market_cap_cr") return "Market Cap";
+  const m = (window.METRICS || []).find(x => x.key === key);
+  return m ? (m.label + (m.unit ? " ("+m.unit+")" : "")) : key;
+}
 
 function metricCard(label, value, sub, signClass){
   return `<div class="metric"><div class="lbl">${label}</div><div class="val ${signClass||""}">${value}</div>${sub ? `<div class="sub">${sub}</div>` : ""}</div>`;
 }
 
 function renderResult(res){
-  // Equity curve as inline SVG
   const W = 800, H = 240, P = 32;
   const xs = res.equity.map(p => p.d);
   const maxVal = Math.max(...res.equity.map(p => Math.max(p.portValue, p.benchValue)));
@@ -427,40 +544,116 @@ function renderResult(res){
     <text x="${W-P}" y="${P+8}" text-anchor="end" fill="#8b949e" font-size="11">Benchmark: ₹${res.equity[res.equity.length-1].benchValue.toFixed(0)}</text>
   </svg>`;
 
-  const picksTable = res.picks.length === 0 ? "" : `
-    <h3 style="margin:24px 0 8px;font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Period picks (sample)</h3>
-    <div style="max-height:300px;overflow:auto;border:1px solid var(--border);border-radius:8px">
-      <table>
-        <thead><tr><th>Period start</th><th>#stocks</th><th>Return</th><th>Sample symbols</th></tr></thead>
-        <tbody>
-          ${res.picks.map(p => `<tr>
-            <td>${p.d}</td>
-            <td>${p.n}</td>
-            <td style="color:${p.ret >= 0 ? 'var(--accent)' : 'var(--danger)'}">${pct(p.ret)}</td>
-            <td style="white-space:normal;color:var(--muted);font-size:12px">${p.syms.join(", ")}</td>
-          </tr>`).join("")}
-        </tbody>
-      </table>
-    </div>`;
-
   return `
-    <div class="card">
-      <div class="head">
-        <span class="lbl">Result</span>
-        <span class="sub">${res.startDate} → ${res.endDate} · ${res.years.toFixed(1)} years</span>
-      </div>
+    <h2 class="section-title">Latest Run</h2>
+    <div class="card-block">
+      <h3 style="display:flex;justify-content:space-between"><span>Result</span>
+        <span style="color:var(--muted);font-weight:400">${res.startDate} → ${res.endDate} · ${res.years.toFixed(1)} years</span></h3>
       <div class="result-grid">
         ${metricCard("Cumulative Returns", pct(res.totalRet), "Portfolio", cls(res.totalRet))}
-        ${metricCard("Benchmark returns", pct(res.benchTotalRet), "Nifty 500 avg", cls(res.benchTotalRet))}
+        ${metricCard("Benchmark Returns", pct(res.benchTotalRet), "Nifty 500 avg", cls(res.benchTotalRet))}
         ${metricCard("CAGR", pct(res.cagr), "Portfolio", cls(res.cagr))}
         ${metricCard("Benchmark CAGR", pct(res.benchCagr), "Nifty 500 avg", cls(res.benchCagr))}
         ${metricCard("Annual Return", pct(res.cagr), "= CAGR", cls(res.cagr))}
         ${metricCard("Max Drawdown", pct(res.maxDD), "Worst peak-to-trough", "neg")}
       </div>
       <div class="chart">${equitySVG}</div>
-      ${picksTable}
     </div>
   `;
+}
+
+// Past backtests grid (for this screen)
+function renderHistory(){
+  const history = readHistory();
+  const mine = NAME ? history.filter(h => h.name === NAME) : history.slice(0, 6);
+  const heading = document.getElementById("history-heading");
+  const grid = document.getElementById("history-grid");
+  if (mine.length === 0){ heading.style.display = "none"; grid.innerHTML = ""; return; }
+  heading.style.display = "";
+  heading.textContent = NAME ? `Past backtests for "${NAME}"` : "Recent backtests";
+  grid.innerHTML = mine.map(h => {
+    const periodStr = h.years ? formatYearsMonths(h.years) : "—";
+    const annual = (h.cagr ?? null);
+    const annualCls = annual == null ? "" : (annual >= 0 ? "pos" : "neg");
+    const qstr = h.rows ? h.rows.map((r, i) => (i === 0 ? "" : ` ${r.join||"AND"} `) + `${metricLabel(r.metric)} ${r.op} ${r.value}`).join("") : "";
+    const encoded = encodeURIComponent(JSON.stringify(h.rows || []));
+    const namedHash = encoded + (h.name ? "&name=" + encodeURIComponent(h.name) : "");
+    return `<div class="hist-card" data-id="${h.id || ''}">
+      <div class="hd">
+        <div>
+          <div class="nm">${escapeHtml(h.name || "Add Name")}</div>
+          <div class="nm-sub">${h.ts ? new Date(h.ts).toLocaleDateString("en-US", {year:"numeric",month:"short",day:"numeric"}) : "—"} | Completed</div>
+        </div>
+        <div class="hd-icons">
+          <button data-act="rerun" title="Re-run">↻</button>
+          <button class="danger" data-act="del" title="Delete">🗑</button>
+        </div>
+      </div>
+      <div class="qry">
+        <div class="qry-text">${escapeHtml(qstr || "(no query)")}</div>
+        <a href="backtest.html#${namedHash}">Backtest Details</a>
+      </div>
+      <div class="body">
+        <div><div class="l">Cumulative Returns</div><div class="v">${pct(h.totalRet)}</div></div>
+        <div><div class="l">Benchmark returns</div><div class="v small">${pct(h.benchTotalRet)}</div></div>
+        <div><div class="l">Start Date</div><div class="v small">${h.startDate || "—"}</div></div>
+        <div><div class="l">End Date</div><div class="v small">${h.endDate || "—"}</div></div>
+        <div><div class="l">Group</div><div class="v small">NIFTY500</div></div>
+        <div><div class="l">Benchmark</div><div class="v small">NIFTY500</div></div>
+        <div><div class="l">Frequency</div><div class="v small">${h.freq === "Q" ? "Quarterly" : "Monthly"}</div></div>
+        <div><div class="l">CAGR</div><div class="v small ${cls(h.cagr)}">${pct(h.cagr)}</div></div>
+      </div>
+      <div class="footer-band">
+        <div><div class="l">Period:</div><div class="v small">${periodStr}</div></div>
+        <div><div class="l">Annual Return:</div><div class="v small ${annualCls}">${pct(annual)}</div></div>
+      </div>
+    </div>`;
+  }).join("");
+
+  // wire icons
+  grid.querySelectorAll("[data-act='del']").forEach(b => b.addEventListener("click", () => {
+    const id = b.closest(".hist-card").dataset.id;
+    const h = readHistory();
+    const idx = h.findIndex(x => String(x.id) === String(id));
+    if (idx >= 0){ h.splice(idx, 1); writeHistory(h); toast("Deleted"); renderHistory(); }
+  }));
+  grid.querySelectorAll("[data-act='rerun']").forEach(b => b.addEventListener("click", () => toast("Adjust params above & click Run Backtest")));
+}
+
+function formatYearsMonths(years){
+  const totalMonths = Math.round(years * 12);
+  const y = Math.floor(totalMonths / 12);
+  const m = totalMonths % 12;
+  if (y === 0) return `${m} months`;
+  if (m === 0) return `${y} year${y===1?"":"s"}`;
+  return `${y} year${y===1?"":"s"}, ${m} month${m===1?"":"s"}`;
+}
+
+function readHistory(){
+  try { return JSON.parse(localStorage.getItem(BACKTEST_HISTORY_KEY) || "[]") || []; }
+  catch { return []; }
+}
+function writeHistory(h){ localStorage.setItem(BACKTEST_HISTORY_KEY, JSON.stringify(h)); }
+function readPresets(){
+  try { return JSON.parse(localStorage.getItem(PRESET_KEY) || "{}") || {}; }
+  catch { return {}; }
+}
+function writePresets(p){ localStorage.setItem(PRESET_KEY, JSON.stringify(p)); }
+
+function saveToHistory(res, rows, opts, name){
+  try {
+    const slim = {
+      id: Date.now(), ts: Date.now(), name: name || null, rows,
+      freq: opts.freq, maxStocks: opts.maxStocks, sortBy: opts.sortBy, sortOrder: opts.sortOrder,
+      totalRet: res.totalRet, benchTotalRet: res.benchTotalRet,
+      cagr: res.cagr, benchCagr: res.benchCagr, maxDD: res.maxDD,
+      years: res.years, startDate: res.startDate, endDate: res.endDate,
+    };
+    const h = readHistory();
+    h.unshift(slim);
+    if (h.length > 50) h.length = 50;
+    writeHistory(h);
+  } catch {}
 }
 
 // ============================================================
@@ -468,31 +661,50 @@ function renderResult(res){
 // ============================================================
 
 let HIST = null;
-let CURRENT_ROWS = [];
+window.METRICS = [];
+let ROWS = [];
+let NAME = null;
 
-async function loadHistory(){
-  const r = await fetch("history.json", {cache:"no-store"});
-  if (!r.ok) throw new Error("Could not load history.json (HTTP " + r.status + "). Run the build_history.py workflow first.");
-  HIST = await r.json();
+async function loadAll(){
+  const [hr, dr] = await Promise.allSettled([
+    fetch("history.json", {cache:"no-store"}),
+    fetch("dataset.json", {cache:"no-store"}),
+  ]);
+  if (hr.status === "fulfilled" && hr.value.ok) HIST = await hr.value.json();
+  else throw new Error("Could not load history.json");
+  if (dr.status === "fulfilled" && dr.value.ok){
+    const ds = await dr.value.json();
+    window.METRICS = ds.metrics || [];
+  }
 }
 
-function renderCriteria(rows){
-  const host = document.getElementById("criteria-list");
-  const valid = rows.filter(r => r.value !== "" && r.value !== null && !isNaN(parseFloat(r.value)));
-  if (!valid.length){
-    host.textContent = "No criteria.";
-    return;
+function populateSortBy(){
+  const sel = document.getElementById("sort-by");
+  const usedKeys = ROWS.map(r => r.metric);
+  const opts = [...new Set(usedKeys), "market_cap_cr", "ltp"];
+  sel.innerHTML = `<option value="">— choose metric —</option>` +
+    opts.map(k => `<option value="${k}">${metricLabel(k)}</option>`).join("");
+  // Default to first criterion's metric
+  if (usedKeys.length){
+    sel.value = usedKeys[0];
+    updateSortTag();
   }
-  const parts = valid.map((r, i) => {
-    const joiner = i === 0 ? "" : `<span style="color:var(--muted)"> ${r.join||"AND"} </span>`;
-    return `${joiner}<span><code>${r.metric}</code> ${r.op} <code>${r.value}</code></span>`;
-  });
-  host.innerHTML = parts.join("<br>");
-  document.getElementById("criteria-count").textContent = valid.length + " rule" + (valid.length === 1 ? "" : "s");
+}
+
+function updateSortTag(){
+  const sel = document.getElementById("sort-by");
+  const ord = document.getElementById("sort-order");
+  const tag = document.getElementById("sort-tag");
+  const text = document.getElementById("sort-tag-text");
+  if (sel.value){
+    text.textContent = `${metricLabel(sel.value)} (${ord.value === "desc" ? "Prefer High" : "Prefer Low"})`;
+    tag.style.display = "";
+  } else {
+    tag.style.display = "none";
+  }
 }
 
 function defaultDates(){
-  // 10y default: 10 years ago to last completed month
   const now = new Date();
   const start = new Date(now.getFullYear() - 10, now.getMonth(), 1);
   const end = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -500,52 +712,84 @@ function defaultDates(){
   return [fmt(start), fmt(end)];
 }
 
-document.getElementById("run").addEventListener("click", () => {
-  const result = document.getElementById("result");
-  result.innerHTML = `<div class="card"><div class="empty">Running backtest…</div></div>`;
-  setTimeout(() => {
-    try {
-      const res = backtest(HIST, CURRENT_ROWS, {
-        freq:  document.getElementById("freq").value,
-        start: document.getElementById("start").value,
-        end:   document.getElementById("end").value,
-        maxStocks: parseInt(document.getElementById("max-stocks").value, 10) || 50,
-      });
-      result.innerHTML = renderResult(res);
-    } catch (e) {
-      result.innerHTML = `<div class="card"><div class="err">${e.message}</div></div>`;
-    }
-  }, 30);
-});
-
-document.getElementById("reset").addEventListener("click", () => {
-  const [s, e] = defaultDates();
-  document.getElementById("start").value = s;
-  document.getElementById("end").value = e;
-  document.getElementById("freq").value = "M";
-  document.getElementById("max-stocks").value = 50;
-  document.getElementById("result").innerHTML = "";
-});
+function renderHeader(){
+  document.getElementById("title").textContent = NAME || "Backtest";
+  document.getElementById("crumb-screen").textContent = NAME || "Screen";
+  if (NAME){
+    document.getElementById("crumb-screen").href = "screener.html#" + encodeURIComponent(JSON.stringify(ROWS)) + "&name=" + encodeURIComponent(NAME);
+  }
+  document.title = "Backtest · " + (NAME || "Screen");
+  const labels = [...new Set(ROWS.map(r => metricLabel(r.metric)))];
+  document.getElementById("desc").textContent = labels.length
+    ? "This screener uses " + labels.slice(0, 3).join(", ") + (labels.length > 3 ? ", +" + (labels.length - 3) + " more" : "") + " parameters."
+    : "No criteria loaded.";
+  document.getElementById("last-updated").textContent = "Last Updated: " + new Date().toLocaleString("en-IN", {dateStyle:"medium", timeStyle:"short"});
+}
 
 (async () => {
-  try {
-    await loadHistory();
-    document.getElementById("dataset-info").textContent = `${HIST.count} stocks · ${HIST.history_years}y history · generated ${new Date(HIST.generated_at).toLocaleDateString()}`;
-  } catch (e){
-    document.getElementById("dataset-info").innerHTML = `<span style="color:var(--danger)">${e.message}</span>`;
+  const screen = readHashScreen();
+  if (!screen){
+    document.querySelector(".wrap").innerHTML = `<div class="empty"><h3>No screen criteria in URL.</h3><p>Open this from the <a href="my-screens.html">screener listing</a>.</p></div>`;
     return;
   }
-  const screen = readHashScreen();
-  if (screen){
-    CURRENT_ROWS = screen.rows;
-    if (screen.name) document.getElementById("screen-title").textContent = "Backtest · " + screen.name;
-    renderCriteria(screen.rows);
-  } else {
-    document.getElementById("criteria-list").innerHTML = `<span>No screen criteria in URL. Open this page from the <a href="builder.html">screener builder</a> via the Backtest button.</span>`;
+  ROWS = screen.rows; NAME = screen.name;
+
+  try { await loadAll(); }
+  catch (e){
+    document.getElementById("desc").innerHTML = `<span style="color:var(--danger)">${e.message}</span>`;
+    return;
   }
+
+  renderHeader();
+  populateSortBy();
+
   const [s, e] = defaultDates();
   document.getElementById("start").value = s;
   document.getElementById("end").value = e;
+
+  document.getElementById("sort-by").addEventListener("change", updateSortTag);
+  document.getElementById("sort-order").addEventListener("change", updateSortTag);
+  document.getElementById("sort-tag-clear").addEventListener("click", () => {
+    document.getElementById("sort-by").value = "";
+    updateSortTag();
+  });
+
+  document.getElementById("run").addEventListener("click", () => {
+    const result = document.getElementById("result");
+    result.innerHTML = `<div class="card-block"><div class="empty">Running backtest…</div></div>`;
+    setTimeout(() => {
+      try {
+        const opts = {
+          freq: document.getElementById("freq").value,
+          start: document.getElementById("start").value,
+          end: document.getElementById("end").value,
+          maxStocks: parseInt(document.getElementById("max-stocks").value, 10) || 50,
+          sortBy: document.getElementById("sort-by").value || null,
+          sortOrder: document.getElementById("sort-order").value,
+        };
+        const res = backtest(HIST, ROWS, opts);
+        result.innerHTML = renderResult(res);
+        saveToHistory(res, ROWS, opts, NAME);
+        renderHistory();
+      } catch (err) {
+        result.innerHTML = `<div class="err">${err.message}</div>`;
+      }
+    }, 30);
+  });
+
+  document.getElementById("btn-alert").addEventListener("click", () => toast("Alerts coming soon"));
+  document.getElementById("btn-backtests").addEventListener("click", () => toast("You're already on Backtests"));
+  document.getElementById("btn-edit").addEventListener("click", () => location.href = "builder.html#" + encodeURIComponent(JSON.stringify(ROWS)));
+  document.getElementById("btn-delete").addEventListener("click", () => {
+    if (!NAME){ toast("Unsaved screen"); return; }
+    if (!confirm(`Delete saved screen "${NAME}"?`)) return;
+    const presets = readPresets(); delete presets[NAME]; writePresets(presets);
+    toast(`Deleted "${NAME}"`);
+    setTimeout(() => location.href = "my-screens.html", 500);
+  });
+  document.getElementById("btn-help").addEventListener("click", () => toast("All metrics work out-of-the-box. See Sort/Order to rank matched stocks; MAX Stocks caps the portfolio."));
+
+  renderHistory();
 })();
 </script>
 </body>
