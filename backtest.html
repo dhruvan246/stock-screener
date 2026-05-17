@@ -832,4 +832,19 @@ function renderHeader(){
   });
 
   document.getElementById("btn-alert").addEventListener("click", () => toast("Alerts coming soon"));
-  document.getElementB
+  document.getElementById("btn-backtests").addEventListener("click", () => toast("You're already on Backtests"));
+  document.getElementById("btn-edit").addEventListener("click", () => location.href = "builder.html#" + encodeURIComponent(JSON.stringify(ROWS)));
+  document.getElementById("btn-delete").addEventListener("click", () => {
+    if (!NAME){ toast("Unsaved screen"); return; }
+    if (!confirm(`Delete saved screen "${NAME}"?`)) return;
+    const presets = readPresets(); delete presets[NAME]; writePresets(presets);
+    toast(`Deleted "${NAME}"`);
+    setTimeout(() => location.href = "my-screens.html", 500);
+  });
+  document.getElementById("btn-help").addEventListener("click", () => toast("All metrics work out-of-the-box. See Sort/Order to rank matched stocks; MAX Stocks caps the portfolio."));
+
+  renderHistory();
+})();
+</script>
+</body>
+</html>
