@@ -86,10 +86,27 @@
   .empty{padding:32px;text-align:center;color:var(--muted)}
 
   .footer{margin-top:16px;font-size:13px;color:var(--muted)}
+
+  /* Top nav (consistent across pages) */
+  .topnav{display:flex;align-items:center;gap:18px;padding:14px 24px;
+          border-bottom:1px solid var(--border);background:var(--card-2);
+          margin:-24px -18px 18px}
+  .topnav .brand{font-weight:600;font-size:16px;color:var(--text);margin-right:8px}
+  .topnav a{color:var(--muted);font-size:14px;text-decoration:none}
+  .topnav a.active{color:var(--text);font-weight:600}
+  .topnav a:hover{color:var(--text)}
 </style>
 </head>
 <body>
 <div class="wrap">
+  <div class="topnav">
+    <span class="brand">📊 Stock Screener</span>
+    <a href="builder.html" class="active">Builder</a>
+    <a href="my-screens.html">My Screens</a>
+    <a href="my-backtests.html">My Backtests</a>
+    <span style="flex:1"></span>
+    <a href="https://github.com/dhruvan246/stock-screener" target="_blank">code ↗</a>
+  </div>
 
   <header>
     <div>
