@@ -26,7 +26,6 @@
 
   .wrap{max-width:1320px;margin:0 auto;padding:18px 24px 80px}
 
-  /* Sub-tabs */
   .subnav{display:flex;align-items:center;gap:24px;padding-bottom:10px;border-bottom:1px solid var(--border);
           margin-bottom:14px;flex-wrap:wrap;font-size:13px}
   .subnav a{color:var(--muted);padding:4px 2px}
@@ -50,7 +49,6 @@
   .top-action.active .btn{background:#fef3c7;border-color:#fde68a;color:#92400e}
   .top-action.delete .btn:hover{color:var(--danger);border-color:var(--danger)}
 
-  /* Form card */
   h2.section-title{margin:24px 0 14px;font-size:22px;font-weight:600;color:var(--text)}
   .form-card{background:var(--card);border:1px solid var(--border);border-radius:12px;
              padding:24px;margin-bottom:18px}
@@ -86,7 +84,6 @@
   .form-footer .btn-primary{background:var(--link);color:#fff;border-color:var(--link)}
   .form-footer .btn-primary:hover{background:#4493e0}
 
-  /* Result + chart */
   .result-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-top:12px}
   .metric{background:var(--card-2);border:1px solid var(--border);border-radius:8px;padding:14px}
   .metric .lbl{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
@@ -99,7 +96,6 @@
   .card-block{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:18px}
   .card-block h3{margin:0 0 14px;font-size:15px;font-weight:600;color:var(--text)}
 
-  /* Past backtest cards grid */
   .history-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
   @media (max-width:1080px){ .history-grid{grid-template-columns:repeat(2,1fr)} }
   @media (max-width:720px){ .history-grid{grid-template-columns:1fr} }
@@ -154,7 +150,6 @@
 
 <div class="wrap">
 
-  <!-- Sub-tabs -->
   <div class="subnav">
     <a href="#" class="active">Backtests ▾</a>
     <a href="builder.html">＋ Create New Screener</a>
@@ -162,7 +157,6 @@
     <a href="my-backtests.html">All My Backtests</a>
   </div>
 
-  <!-- Breadcrumb -->
   <div class="crumb">
     <a href="my-screens.html">My Stock Screeners</a>
     <span class="sep">/</span>
@@ -171,7 +165,6 @@
     <span>Backtests</span>
   </div>
 
-  <!-- Title + actions -->
   <div class="title-row">
     <div>
       <h1 id="title">Screen</h1>
@@ -186,7 +179,6 @@
     </div>
   </div>
 
-  <!-- ===== RUN NEW BACKTEST FORM ===== -->
   <h2 class="section-title">Run a new screener backtest</h2>
 
   <div class="form-card">
@@ -194,7 +186,6 @@
 
       <div class="form-col">
         <h3>Choose Date Range and Frequency</h3>
-
         <div class="field">
           <label for="freq">Portfolio Review Frequency</label>
           <select id="freq">
@@ -202,7 +193,6 @@
             <option value="Q">Quarter</option>
           </select>
         </div>
-
         <div class="field-row">
           <div class="field">
             <label for="start">Start Date</label>
@@ -213,22 +203,18 @@
             <input type="month" id="end">
           </div>
         </div>
-
         <div class="field-hint" id="date-hint">10 years available from May 2016. Backtest can start from any month end.</div>
       </div>
 
       <div class="form-col">
         <h3>Choose Stock Universe</h3>
-
         <div class="field">
           <label for="universe">Select Stock Universe</label>
           <select id="universe">
             <option>Nifty 500</option>
           </select>
         </div>
-
         <div class="field-hint">Current universe constituents are applied throughout the backtest.</div>
-
         <div class="field" style="margin-top:14px">
           <label for="benchmark">Select Benchmark</label>
           <select id="benchmark">
@@ -239,19 +225,16 @@
 
       <div class="form-col">
         <h3>Advanced Sorting</h3>
-
         <div class="field">
           <label for="sort-by">Sort By</label>
           <select id="sort-by">
             <option value="">— choose metric —</option>
           </select>
         </div>
-
         <div class="sort-tag" id="sort-tag" style="display:none">
           <span id="sort-tag-text"></span>
           <button id="sort-tag-clear" title="Clear">×</button>
         </div>
-
         <div class="field-row">
           <div class="field">
             <label for="sort-order">Sorting Order</label>
@@ -265,7 +248,6 @@
             <input type="number" id="max-stocks" value="50" min="1" max="500">
           </div>
         </div>
-
         <div class="field-hint">Max Weightage Per Stock: equal-weighted</div>
       </div>
     </div>
@@ -279,10 +261,8 @@
     </div>
   </div>
 
-  <!-- ===== RESULT (latest run) ===== -->
   <div id="result"></div>
 
-  <!-- ===== PAST BACKTEST CARDS for this screen ===== -->
   <h2 class="section-title" id="history-heading" style="display:none">Past backtests for this screen</h2>
   <div class="history-grid" id="history-grid"></div>
 
@@ -297,13 +277,11 @@
 <div class="toast" id="toast"></div>
 
 <script>
-// ============================================================
-//  Engine (same logic as before)
-// ============================================================
-
 const BACKTEST_HISTORY_KEY = "backtest_history_v1";
+const BACKTEST_RUNS_KEY    = "backtest_runs_v1";
 const PRESET_KEY = "screener_presets_v1";
 const REPORTING_LAG_DAYS = 45;
+const MAX_FULL_RUNS = 12;
 
 function toast(msg, ms=1700){
   const el = document.getElementById("toast");
@@ -452,18 +430,16 @@ function backtest(HIST, rows, opts){
         const snapCur = snapAt(s.monthly, curD); if (!snapCur) continue;
         const ret = snapCur.close / snapPrev.close;
         if (!isFinite(ret) || ret <= 0) continue;
-        // Sort metric value for ranking
         const sortVal = opts.sortBy ? metricValue(s, snapPrev, opts.sortBy, asOf) : null;
-        cands.push({ sym: s.symbol, name: s.name, ret, sortVal });
+        cands.push({ sym: s.symbol, name: s.name, ret, sortVal, entryPx: snapPrev.close, exitPx: snapCur.close });
       }
     }
 
-    // Apply Advanced Sorting
     let selected = cands;
     if (opts.sortBy){
       const dir = opts.sortOrder === "asc" ? 1 : -1;
       selected = cands.filter(c => c.sortVal != null).sort((a, b) => (a.sortVal > b.sortVal ? 1 : -1) * dir);
-      if (selected.length === 0) selected = cands; // fall back if no metric values
+      if (selected.length === 0) selected = cands;
     } else {
       selected = cands.slice().sort((a, b) => a.sym.localeCompare(b.sym));
     }
@@ -490,7 +466,48 @@ function backtest(HIST, rows, opts){
     benchValue *= (1 + benchRet);
 
     equity.push({ d: curD, portValue, benchValue });
-    picks.push({ d: prevD, n: selected.length, ret: periodRet, syms: selected.slice(0, 10).map(c => c.sym) });
+    picks.push({
+      d_start: prevD, d_end: curD, n: selected.length, ret: periodRet,
+      stocks: selected.map(c => ({ sym: c.sym, name: c.name, entryPx: c.entryPx, exitPx: c.exitPx }))
+    });
+  }
+
+  const trades = [];
+  const open = new Map();
+  for (let j = 0; j < picks.length; j++){
+    const p = picks[j];
+    const curSet = new Set(p.stocks.map(s => s.sym));
+    for (const [sym, info] of [...open.entries()]){
+      if (!curSet.has(sym)){
+        trades.push({ sym, name: info.name, entry_d: info.entry_d, entry_px: info.entry_px,
+                      exit_d: info.last_d, exit_px: info.last_px, active: false });
+        open.delete(sym);
+      }
+    }
+    for (const s of p.stocks){
+      if (open.has(s.sym)){
+        const info = open.get(s.sym);
+        info.last_d = p.d_end; info.last_px = s.exitPx;
+      } else {
+        open.set(s.sym, { name: s.name, entry_d: p.d_start, entry_px: s.entryPx,
+                          last_d: p.d_end, last_px: s.exitPx });
+      }
+    }
+  }
+  for (const [sym, info] of open.entries()){
+    trades.push({ sym, name: info.name, entry_d: info.entry_d, entry_px: info.entry_px,
+                  exit_d: info.last_d, exit_px: info.last_px, active: true });
+  }
+  for (const t of trades){
+    t.ret = (t.entry_px > 0) ? (t.exit_px / t.entry_px - 1) : 0;
+  }
+
+  let peak = equity[0].portValue, peakD = equity[0].d, maxDD = 0;
+  let maxDD_peakD = equity[0].d, maxDD_troughD = equity[0].d;
+  for (const p of equity){
+    if (p.portValue > peak){ peak = p.portValue; peakD = p.d; }
+    const dd = (p.portValue / peak) - 1;
+    if (dd < maxDD){ maxDD = dd; maxDD_peakD = peakD; maxDD_troughD = p.d; }
   }
 
   const startD = new Date(dates[0] + "T00:00:00Z");
@@ -500,18 +517,13 @@ function backtest(HIST, rows, opts){
   const benchTotalRet = (benchValue / 100) - 1;
   const cagr = years > 0 ? Math.pow(portValue / 100, 1 / years) - 1 : 0;
   const benchCagr = years > 0 ? Math.pow(benchValue / 100, 1 / years) - 1 : 0;
-  let peak = equity[0].portValue, maxDD = 0;
-  for (const p of equity){
-    if (p.portValue > peak) peak = p.portValue;
-    const dd = (p.portValue / peak) - 1;
-    if (dd < maxDD) maxDD = dd;
-  }
-  return { equity, picks, totalRet, benchTotalRet, cagr, benchCagr, maxDD, years, startDate: dates[0], endDate: dates[dates.length-1] };
-}
 
-// ============================================================
-//  Rendering
-// ============================================================
+  return {
+    equity, picks, trades, totalRet, benchTotalRet, cagr, benchCagr, maxDD,
+    maxDD_peakD, maxDD_troughD, years,
+    startDate: dates[0], endDate: dates[dates.length-1]
+  };
+}
 
 function metricLabel(key){
   if (key === "ltp") return "Last Price";
@@ -562,7 +574,6 @@ function renderResult(res){
   `;
 }
 
-// Past backtests grid (for this screen)
 function renderHistory(){
   const history = readHistory();
   const mine = NAME ? history.filter(h => h.name === NAME) : history.slice(0, 6);
@@ -578,6 +589,7 @@ function renderHistory(){
     const qstr = h.rows ? h.rows.map((r, i) => (i === 0 ? "" : ` ${r.join||"AND"} `) + `${metricLabel(r.metric)} ${r.op} ${r.value}`).join("") : "";
     const encoded = encodeURIComponent(JSON.stringify(h.rows || []));
     const namedHash = encoded + (h.name ? "&name=" + encodeURIComponent(h.name) : "");
+    const detailsHref = h.id ? `backtest-details.html#${h.id}` : `backtest.html#${namedHash}`;
     return `<div class="hist-card" data-id="${h.id || ''}">
       <div class="hd">
         <div>
@@ -591,7 +603,7 @@ function renderHistory(){
       </div>
       <div class="qry">
         <div class="qry-text">${escapeHtml(qstr || "(no query)")}</div>
-        <a href="backtest.html#${namedHash}">Backtest Details</a>
+        <a href="${detailsHref}">Backtest Details</a>
       </div>
       <div class="body">
         <div><div class="l">Cumulative Returns</div><div class="v">${pct(h.totalRet)}</div></div>
@@ -610,7 +622,6 @@ function renderHistory(){
     </div>`;
   }).join("");
 
-  // wire icons
   grid.querySelectorAll("[data-act='del']").forEach(b => b.addEventListener("click", () => {
     const id = b.closest(".hist-card").dataset.id;
     const h = readHistory();
@@ -640,25 +651,60 @@ function readPresets(){
 }
 function writePresets(p){ localStorage.setItem(PRESET_KEY, JSON.stringify(p)); }
 
+function readRuns(){
+  try { return JSON.parse(localStorage.getItem(BACKTEST_RUNS_KEY) || "{}") || {}; }
+  catch { return {}; }
+}
+function writeRuns(r){
+  try { localStorage.setItem(BACKTEST_RUNS_KEY, JSON.stringify(r)); } catch {}
+}
+
 function saveToHistory(res, rows, opts, name){
+  const id = Date.now();
+  const slim = {
+    id, ts: id, name: name || null, rows,
+    freq: opts.freq, maxStocks: opts.maxStocks, sortBy: opts.sortBy, sortOrder: opts.sortOrder,
+    totalRet: res.totalRet, benchTotalRet: res.benchTotalRet,
+    cagr: res.cagr, benchCagr: res.benchCagr, maxDD: res.maxDD,
+    years: res.years, startDate: res.startDate, endDate: res.endDate,
+  };
   try {
-    const slim = {
-      id: Date.now(), ts: Date.now(), name: name || null, rows,
-      freq: opts.freq, maxStocks: opts.maxStocks, sortBy: opts.sortBy, sortOrder: opts.sortOrder,
-      totalRet: res.totalRet, benchTotalRet: res.benchTotalRet,
-      cagr: res.cagr, benchCagr: res.benchCagr, maxDD: res.maxDD,
-      years: res.years, startDate: res.startDate, endDate: res.endDate,
-    };
     const h = readHistory();
     h.unshift(slim);
     if (h.length > 50) h.length = 50;
     writeHistory(h);
   } catch {}
-}
 
-// ============================================================
-//  Boot
-// ============================================================
+  try {
+    const full = {
+      id, ts: id, name: name || null, rows, opts,
+      summary: {
+        totalRet: res.totalRet, benchTotalRet: res.benchTotalRet,
+        cagr: res.cagr, benchCagr: res.benchCagr, maxDD: res.maxDD,
+        maxDD_peakD: res.maxDD_peakD, maxDD_troughD: res.maxDD_troughD,
+        years: res.years, startDate: res.startDate, endDate: res.endDate,
+      },
+      equity: res.equity,
+      periods: res.picks.map(p => ({ d_start: p.d_start, d_end: p.d_end, n: p.n, ret: p.ret })),
+      trades: res.trades,
+    };
+    const runs = readRuns();
+    runs[id] = full;
+    const ids = Object.keys(runs).sort((a, b) => Number(b) - Number(a));
+    if (ids.length > MAX_FULL_RUNS){
+      for (let i = MAX_FULL_RUNS; i < ids.length; i++) delete runs[ids[i]];
+    }
+    writeRuns(runs);
+  } catch (e){
+    try {
+      const runs = readRuns();
+      const ids = Object.keys(runs).sort((a, b) => Number(a) - Number(b));
+      if (ids.length) delete runs[ids[0]];
+      writeRuns(runs);
+    } catch {}
+  }
+  return id;
+}
 
 let HIST = null;
 window.METRICS = [];
@@ -684,7 +730,6 @@ function populateSortBy(){
   const opts = [...new Set(usedKeys), "market_cap_cr", "ltp"];
   sel.innerHTML = `<option value="">— choose metric —</option>` +
     opts.map(k => `<option value="${k}">${metricLabel(k)}</option>`).join("");
-  // Default to first criterion's metric
   if (usedKeys.length){
     sel.value = usedKeys[0];
     updateSortTag();
@@ -794,3 +839,5 @@ function renderHeader(){
 </script>
 </body>
 </html>
+
+V�u�i�b�觶���஋�:��r�+&��
